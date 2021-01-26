@@ -17,6 +17,7 @@ int main() {
 
     cout << dataController->getBit(0, 1) << endl;
     mem->saveToMemFile();
+    cout << "mod" << endl;
 
     //char* a = mem->getByte(0,10);
     //cout << (int)a[0] << endl;
