@@ -14,10 +14,14 @@ int main() {
     MemFileHandler* mem = new MemFileHandler("mem.dat", 2 * 1024 * 1024);
     DeviceDataController* dataController = new DeviceDataController(mem);
     dataController->setBit(0, 1, 0);
+    dataController->setDWord(4, 10000000);
+    dataController->setFloat(8, 2.345f);
 
     cout << dataController->getBit(0, 1) << endl;
+    cout << dataController->getDWord(4) << endl;
+    cout << dataController->getFloat(8) << endl;
+    
     mem->saveToMemFile();
-    cout << "mod" << endl;
 
     //char* a = mem->getByte(0,10);
     //cout << (int)a[0] << endl;

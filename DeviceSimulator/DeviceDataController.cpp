@@ -1,4 +1,5 @@
 #include "DeviceDataController.h"
+#include "DataConvertorUtils.h"
 
 DeviceDataController::DeviceDataController(MemFileHandler* memFile) {
 	this->memFile = memFile;
@@ -34,17 +35,17 @@ void DeviceDataController::setBit(int offsetByte, int offsetBit, bool value) {
 }
 
 int DeviceDataController::getDWord(int offset) {
-	return 0;
+	return DataConvertorUtils::byte2int(this->memFile->getByte(offset, 4));
 }
 
 void DeviceDataController::setDWord(int offset, int value) {
-	
+	this->memFile->setByte(DataConvertorUtils::int2byte(value), offset, 4);
 }
 
 float DeviceDataController::getFloat(int offset) {
-	return 0.0f;
+	return DataConvertorUtils::byte2float(this->memFile->getByte(offset, 4));
 }
 
 void DeviceDataController::setFloat(int offset, float value) {
-	
+	this->memFile->setByte(DataConvertorUtils::float2byte(value), offset, 4);
 }

@@ -1,12 +1,4 @@
-﻿  DataConvertorUtils.cpp
-D:\CloudDocs\OneDrive\Projects\Projects\Toughts\DeviceSimulator\DeviceSimulator\DataConvertorUtils.h(8,2): warning C4091: “static ”: 没有声明变量时忽略“DataConvertorUtils”的左侧
-  DeviceSimulator.cpp
+﻿  DeviceSimulator.cpp
 D:\CloudDocs\OneDrive\Projects\Projects\Toughts\DeviceSimulator\DeviceSimulator\FileUtils.h(12,2): warning C4091: “static ”: 没有声明变量时忽略“FileUtils”的左侧
 D:\CloudDocs\OneDrive\Projects\Projects\Toughts\DeviceSimulator\DeviceSimulator\DataConvertorUtils.h(8,2): warning C4091: “static ”: 没有声明变量时忽略“DataConvertorUtils”的左侧
-  DeviceDataController.cpp
-  MemFileHandler.cpp
-D:\CloudDocs\OneDrive\Projects\Projects\Toughts\DeviceSimulator\DeviceSimulator\FileUtils.h(12,2): warning C4091: “static ”: 没有声明变量时忽略“FileUtils”的左侧
-  FileUtils.cpp
-D:\CloudDocs\OneDrive\Projects\Projects\Toughts\DeviceSimulator\DeviceSimulator\FileUtils.h(12,2): warning C4091: “static ”: 没有声明变量时忽略“FileUtils”的左侧
-  正在生成代码...
   DeviceSimulator.vcxproj -> D:\CloudDocs\OneDrive\Projects\Projects\Toughts\DeviceSimulator\x64\Debug\DeviceSimulator.exe

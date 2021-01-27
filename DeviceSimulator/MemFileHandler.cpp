@@ -64,7 +64,7 @@ char* MemFileHandler::getByte(int start, int nums) {
 		return nullptr;
 	}
 	char* bytes = new char[nums];
-	for (size_t i = start; i < nums; i++) {
+	for (int i = start; i < start + nums; i++) {
 		bytes[i - start] = this->mem[i];
 	}
 	return bytes;
@@ -88,7 +88,7 @@ bool MemFileHandler::setByte(char* c, int start, int nums) {
 		return false;
 	}
 	try {
-		for (size_t i = start; i < nums; i++) {
+		for (int i = start; i < start + nums; i++) {
 			this->mem[i] = c[i - start];
 		}
 		return true;
