@@ -1,0 +1,17 @@
+﻿  DataConvertorUtils.cpp
+D:\CloudDocs\OneDrive\Projects\Projects\Toughts\DeviceSimulator\DeviceSimulator\DataConvertorUtils.h(8,2): warning C4091: “static ”: 没有声明变量时忽略“DataConvertorUtils”的左侧
+  DeviceSimulator.cpp
+D:\CloudDocs\OneDrive\Projects\Projects\Toughts\DeviceSimulator\DeviceSimulator\FileUtils.h(12,2): warning C4091: “static ”: 没有声明变量时忽略“FileUtils”的左侧
+D:\CloudDocs\OneDrive\Projects\Projects\Toughts\DeviceSimulator\DeviceSimulator\DataConvertorUtils.h(8,2): warning C4091: “static ”: 没有声明变量时忽略“DataConvertorUtils”的左侧
+D:\CloudDocs\OneDrive\Projects\Projects\Toughts\DeviceSimulator\DeviceSimulator\DeviceSimulator.cpp(139,27): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+  DeviceDataController.cpp
+D:\CloudDocs\OneDrive\Projects\Projects\Toughts\DeviceSimulator\DeviceSimulator\DataConvertorUtils.h(8,2): warning C4091: “static ”: 没有声明变量时忽略“DataConvertorUtils”的左侧
+  MemFileHandler.cpp
+D:\CloudDocs\OneDrive\Projects\Projects\Toughts\DeviceSimulator\DeviceSimulator\FileUtils.h(12,2): warning C4091: “static ”: 没有声明变量时忽略“FileUtils”的左侧
+  FileUtils.cpp
+D:\CloudDocs\OneDrive\Projects\Projects\Toughts\DeviceSimulator\DeviceSimulator\FileUtils.h(12,2): warning C4091: “static ”: 没有声明变量时忽略“FileUtils”的左侧
+  正在生成代码
+  Previous IPDB not found, fall back to full compilation.
+  All 281 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  已完成代码的生成
+  DeviceSimulator.vcxproj -> D:\CloudDocs\OneDrive\Projects\Projects\Toughts\DeviceSimulator\x64\Release\DeviceSimulator.exe

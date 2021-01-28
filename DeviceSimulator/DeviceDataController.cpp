@@ -23,10 +23,16 @@ void DeviceDataController::setBit(int offsetByte, int offsetBit, bool value) {
 		char oriByte = this->memFile->getByte(offsetByte);
 		char temp = 1 << offsetBit;
 		if ((oriByte & (temp)) == 0) {
-			this->memFile->setByte(oriByte + temp, offsetByte);
+			if (value) {
+				this->memFile->setByte(oriByte + temp, offsetByte);
+			}
+			
 		}
 		else {
-			this->memFile->setByte(oriByte - temp, offsetByte);
+			if (!value) {
+				this->memFile->setByte(oriByte - temp, offsetByte);
+			}
+			
 		}
 	}
 	else {
@@ -48,4 +54,9 @@ float DeviceDataController::getFloat(int offset) {
 
 void DeviceDataController::setFloat(int offset, float value) {
 	this->memFile->setByte(DataConvertorUtils::float2byte(value), offset, 4);
+}
+
+bool DeviceDataController::save()
+{
+	return this->memFile->saveToMemFile();
 }

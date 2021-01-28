@@ -22,6 +22,8 @@ public:
 	float getFloat(int offset);
 	void setFloat(int offset, float value);
 
+	bool save();
+
 
 
 
