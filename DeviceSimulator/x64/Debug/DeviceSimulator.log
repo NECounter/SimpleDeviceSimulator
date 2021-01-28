@@ -1,5 +1,0 @@
-﻿  DeviceSimulator.cpp
-D:\CloudDocs\OneDrive\Projects\Projects\Toughts\DeviceSimulator\DeviceSimulator\FileUtils.h(12,2): warning C4091: “static ”: 没有声明变量时忽略“FileUtils”的左侧
-D:\CloudDocs\OneDrive\Projects\Projects\Toughts\DeviceSimulator\DeviceSimulator\DataConvertorUtils.h(8,2): warning C4091: “static ”: 没有声明变量时忽略“DataConvertorUtils”的左侧
-D:\CloudDocs\OneDrive\Projects\Projects\Toughts\DeviceSimulator\DeviceSimulator\DeviceSimulator.cpp(139,27): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
-  DeviceSimulator.vcxproj -> D:\CloudDocs\OneDrive\Projects\Projects\Toughts\DeviceSimulator\x64\Debug\DeviceSimulator.exe
