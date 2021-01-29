@@ -89,11 +89,9 @@ void InitSockListener(DeviceDataController* dataController) {
 
 //Service Thread
 DWORD WINAPI ServerThread(LPVOID lpParameter) {
-	Connection conn(false);
 	SetCharsetNameOption* opt = new SetCharsetNameOption("utf8");
+	Connection conn(false);
 	conn.set_option(opt);
-	Query query = NULL;
-	
 
 	SocketInfo* sockInfo = (SocketInfo*)lpParameter;
 	SOCKET* clientSocket = sockInfo->acceptedSocket;
@@ -119,6 +117,7 @@ DWORD WINAPI ServerThread(LPVOID lpParameter) {
 		QueryInfo queryInfo = { "-1" ,"-1" , "-1" , "-1" , "-1" , "-1" , "-1" , "-1" };
 		queryInfo.clientId = to_string(*clientSocket);
 		recvByt = recv(*clientSocket, recvBuf, sizeof(recvBuf), 0);
+
 		if (recvByt > 0){
 			
 			char* token = strtok_s(recvBuf, reg.c_str(), &buf);
@@ -271,12 +270,6 @@ DWORD WINAPI ServerThread(LPVOID lpParameter) {
 			}
 		}
 
-		memcpy(sendBuf, msg.c_str(), sizeof(msg));
-		sendSig = send(*clientSocket, sendBuf, sizeof(sendBuf), 0);
-		cmd.clear();
-		memset(recvBuf, 0, sizeof(recvBuf));
-		memset(sendBuf, 0, sizeof(sendBuf));
-
 		if (success)
 		{
 			time_t timep;
@@ -289,9 +282,10 @@ DWORD WINAPI ServerThread(LPVOID lpParameter) {
 			{
 				string sql = "INSERT INTO `device_log`.`operation_log` (`operation`, `data_type`, `offset_byte`, `offset_bit`, `value_write`, `value_read`, `client_id`, `operation_dt`) \
 VALUES('" + queryInfo.operation + "', '" + queryInfo.dataType + "', " + queryInfo.offsetByte + ", " + queryInfo.offsetBit + ", " + queryInfo.valueWrite + ", " + queryInfo.valueRead + ", " + queryInfo.clientId + ", '" + queryInfo.operationDT + "')";
-				query = conn.query(sql);
-				query.execute();
-				cout << "A record has been inserted into the database" << endl;
+				Query query = conn.query(sql);
+				query.exec();
+				cout << "A record has been inserted into the database from: " << queryInfo.clientId << endl;
+				conn.disconnect();
 				//Query query = conn.query("select * from book");
 				//UseQueryResult res = query.use();
 				//if (res)
@@ -313,6 +307,12 @@ VALUES('" + queryInfo.operation + "', '" + queryInfo.dataType + "', " + queryInf
 				cout << "DB connection failed: " << conn.error() << endl;
 			}
 		}
+
+		memcpy(sendBuf, msg.c_str(), sizeof(msg));
+		sendSig = send(*clientSocket, sendBuf, sizeof(sendBuf), 0);
+		cmd.clear();
+		memset(recvBuf, 0, sizeof(recvBuf));
+		memset(sendBuf, 0, sizeof(sendBuf));
 	}
 	closesocket(*clientSocket);
 	free(clientSocket);
