@@ -14,7 +14,7 @@ bool DeviceDataController::getBit(int offsetByte, int offsetBit) {
 		return (this->memFile->getByte(offsetByte) & (1 << offsetBit)) != 0;
 	}
 	else {
-		throw;
+		return NULL;
 	}
 }
 
@@ -31,12 +31,8 @@ void DeviceDataController::setBit(int offsetByte, int offsetBit, bool value) {
 		else {
 			if (!value) {
 				this->memFile->setByte(oriByte - temp, offsetByte);
-			}
-			
+			}	
 		}
-	}
-	else {
-		throw;
 	}
 }
 

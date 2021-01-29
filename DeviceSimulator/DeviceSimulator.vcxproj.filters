@@ -47,6 +47,9 @@
     <ClInclude Include="DeviceDataController.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="DeviceSimulator.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="mem.dat">
