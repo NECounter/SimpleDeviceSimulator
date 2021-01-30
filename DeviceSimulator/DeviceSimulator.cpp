@@ -16,6 +16,18 @@ int main() {
 }
 
 void InitSockListener(DeviceDataController* dataController) {
+	//Init dataBase
+	SetCharsetNameOption* opt = new SetCharsetNameOption("utf8");
+	Connection conn(false);
+	conn.set_option(opt);
+	if (conn.connect(databaseName, databaseHostName, databaseUserName, databasePasswd)) {
+		cout << "Database is online" << endl;
+		conn.disconnect();
+	}
+	else {
+		cout << "Database is offline" << endl;
+	}
+
 	//Init socket lib
 	WSADATA wsaData;
 	int err = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -269,6 +281,9 @@ DWORD WINAPI ServerThread(LPVOID lpParameter) {
 				msg = "Invalid parameter";
 			}
 		}
+		else {
+			break;
+		}
 
 		if (success)
 		{
@@ -284,7 +299,6 @@ DWORD WINAPI ServerThread(LPVOID lpParameter) {
 VALUES('" + queryInfo.operation + "', '" + queryInfo.dataType + "', " + queryInfo.offsetByte + ", " + queryInfo.offsetBit + ", " + queryInfo.valueWrite + ", " + queryInfo.valueRead + ", " + queryInfo.clientId + ", '" + queryInfo.operationDT + "')";
 				Query query = conn.query(sql);
 				query.exec();
-				cout << "A record has been inserted into the database from: " << queryInfo.clientId << endl;
 				conn.disconnect();
 				//Query query = conn.query("select * from book");
 				//UseQueryResult res = query.use();
@@ -309,13 +323,15 @@ VALUES('" + queryInfo.operation + "', '" + queryInfo.dataType + "', " + queryInf
 		}
 
 		memcpy(sendBuf, msg.c_str(), sizeof(msg));
-		sendSig = send(*clientSocket, sendBuf, sizeof(sendBuf), 0);
+		sendSig = send(*clientSocket, sendBuf, sizeof(msg), 0);
 		cmd.clear();
 		memset(recvBuf, 0, sizeof(recvBuf));
 		memset(sendBuf, 0, sizeof(sendBuf));
 	}
+	int socketNo = *clientSocket;
 	closesocket(*clientSocket);
 	free(clientSocket);
+	cout << "A client has disconnected，socket：" << socketNo << endl;
 	return 0;
 }
 
