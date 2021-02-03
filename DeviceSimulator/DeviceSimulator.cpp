@@ -321,6 +321,7 @@ VALUES('" + queryInfo.operation + "', '" + queryInfo.dataType + "', " + queryInf
 				cout << "DB connection failed: " << conn.error() << endl;
 			}
 		}
+		msg = msg + "\n";
 
 		memcpy(sendBuf, msg.c_str(), sizeof(msg));
 		sendSig = send(*clientSocket, sendBuf, sizeof(msg), 0);

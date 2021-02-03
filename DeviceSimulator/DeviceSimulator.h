@@ -41,7 +41,7 @@ struct QueryInfo
 	std::string operationDT;
 };
 
-#define port  8000
+#define port 8000
 #define databaseName "device_log"
 #define databaseHostName "127.0.0.1"
 #define databaseUserName "root"
