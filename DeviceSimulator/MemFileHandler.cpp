@@ -61,7 +61,7 @@ char MemFileHandler::getByte(int index) {
 
 char* MemFileHandler::getByte(int start, int nums) {
 	if (!this->indexCheck(start, start + nums - 1)) {
-		return nullptr;
+		return 0;
 	}
 	char* bytes = new char[nums];
 	for (int i = start; i < start + nums; i++) {

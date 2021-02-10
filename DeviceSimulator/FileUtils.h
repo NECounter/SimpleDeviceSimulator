@@ -2,7 +2,7 @@
 
 #include <string>
 
-static class FileUtils {
+class FileUtils {
 public:
 	static bool isFileExist(std::string fileName);
 	static int getFileSize(std::string fileName);

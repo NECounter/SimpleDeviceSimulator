@@ -23,14 +23,5 @@ public:
 	void setFloat(int offset, float value);
 
 	bool save();
-
-
-
-
-
-
-
-
-
 };
 
