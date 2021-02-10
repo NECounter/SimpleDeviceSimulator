@@ -62,7 +62,7 @@ void DeviceSimulatorServer::Accept()
 
     cout << "new connection was accepted." << endl;
 
-    // 在epfd中注册新建立的连接
+    // register the incomming fd to epfd
     struct epoll_event event;
     event.data.fd = new_fd;
     event.events = EPOLLIN;
@@ -72,12 +72,13 @@ void DeviceSimulatorServer::Accept()
 
 void DeviceSimulatorServer::Run()
 {
-    epfd = epoll_create(1); // 创建epoll句柄
+    epfd = epoll_create(1); // create epoll handler and return its fd
 
+    // register the listen_fd to epfd
     struct epoll_event event;
     event.data.fd = listen_fd;
     event.events = EPOLLIN;
-    epoll_ctl(epfd, EPOLL_CTL_ADD, listen_fd, &event); // 注册listen_fd
+    epoll_ctl(epfd, EPOLL_CTL_ADD, listen_fd, &event); 
 
     while (1)
     {
@@ -93,23 +94,24 @@ void DeviceSimulatorServer::Run()
             continue;
         }
 
-        for (int i = 0; i < nums; ++i) // 遍历所有就绪事件
+        //handler all epoll events that epoll_wait returned
+        for (int i = 0; i < nums; ++i) 
         {
             int fd = events[i].data.fd;
             if ((fd == listen_fd) && (events[i].events & EPOLLIN))
-                Accept(); // 有新的客户端请求
+                Accept(); // accept incoming clients
             else if ((fd != listen_fd) && (events[i].events & EPOLLIN))
-                Recv(fd); // 读数据
+                Recv(fd); // read incoming messages
         }
     }
 }
 
 void DeviceSimulatorServer::Recv(int fd)
 {
-    bool close_conn = false; // 标记当前连接是否断开了
+    bool close_conn = false; // an indicator of the status of this fd
 
     PACKET_HEAD head;
-    int recvByte = recv(fd, &head, sizeof(head), 0); // 先接受包头，即数据总长度
+    int recvByte = recv(fd, &head, sizeof(head), 0); // receive the messae header first
     if (recvByte > 0){
         char recvBuffer[head.length];
         bzero(recvBuffer, head.length);
@@ -126,7 +128,7 @@ void DeviceSimulatorServer::Recv(int fd)
             total = total + len;
         }
 
-        if (total == head.length) // 将收到的消息原样发回给客户端
+        if (total == head.length) // finished receiving, prepare to send messages to the clinet 
         {
             string msg = cmdHandlerService(recvBuffer, fd);
             head.length = msg.size() + 1;
@@ -148,13 +150,13 @@ void DeviceSimulatorServer::Recv(int fd)
 
     
 
-    if (close_conn) // 当前这个连接有问题，关闭它
+    if (close_conn) // bad cnnection, close it
     {
         close(fd);
         struct epoll_event event;
         event.data.fd = fd;
         event.events = EPOLLIN;
-        epoll_ctl(epfd, EPOLL_CTL_DEL, fd, &event); // Delete一个fd
+        epoll_ctl(epfd, EPOLL_CTL_DEL, fd, &event); // use epoll_ctl to del a fd from epoll
         cout << "A client has disconneted" << endl;
     }
 }
@@ -331,7 +333,7 @@ string DeviceSimulatorServer::cmdHandlerService(string cmd, int fd){
 }
 
 string DeviceSimulatorServer::sqlWriteService(QueryInfo queryInfo){
-
+    return "todo:";
 }
 
     /**

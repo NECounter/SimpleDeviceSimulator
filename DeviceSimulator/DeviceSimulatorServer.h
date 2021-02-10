@@ -27,13 +27,13 @@ using namespace std;
 #define BUFFER_SIZE 1024
 #define EPOLLSIZE 100
 
-struct PACKET_HEAD
+struct PACKET_HEAD // header of one message, describes the size of following message
 {
     int length;
 };
 
 
-struct QueryInfo
+struct QueryInfo //infomation of one query
 {
 	std::string operation;
 	std::string dataType;
@@ -50,9 +50,9 @@ class DeviceSimulatorServer
 private:
     struct sockaddr_in server_addr;
     socklen_t server_addr_len;
-    int listen_fd;                        // 监听的fd
+    int listen_fd;                        // listener's fd
     int epfd;                             // epoll fd
-    struct epoll_event events[EPOLLSIZE]; // epoll_wait返回的就绪事件
+    struct epoll_event events[EPOLLSIZE]; // placeholder of event list which epoll_wait retruns
 
     MemFileHandler* mem;
     DeviceDataController* dataController;
