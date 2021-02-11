@@ -16,6 +16,8 @@
 #include <sys/epoll.h> // epoll
 #include <sys/ioctl.h>
 
+#include <mysql++.h>
+
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
@@ -23,6 +25,7 @@
 #define _CRT_SECURE_NO_WARINGS
 
 using namespace std;
+using namespace mysqlpp;
 
 #define BUFFER_SIZE 1024
 #define EPOLLSIZE 100
@@ -62,6 +65,7 @@ private:
     string databaseHostName;
     string databaseUserName;
     string databasePasswd;
+    Connection* conn;
 
     
 public:

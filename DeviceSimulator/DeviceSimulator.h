@@ -12,7 +12,7 @@
 
 #define port 8000
 #define databaseName "device_log"
-#define databaseHostName "127.0.0.1"
+#define databaseHostName "192.168.3.50"
 #define databaseUserName "root"
 #define databasePasswd "1234"
 

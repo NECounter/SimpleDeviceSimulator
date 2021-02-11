@@ -10,7 +10,7 @@ DeviceSimulatorServer::DeviceSimulatorServer(int port, string databaseHostName, 
     listen_fd = socket(PF_INET, SOCK_STREAM, 0);
     if (listen_fd < 0)
     {
-        cout << "Create Socket Failed!" << endl;
+        cout << "Create Socket Failed!!" << endl;
         exit(1);
     }
     int opt = 1;
@@ -19,6 +19,25 @@ DeviceSimulatorServer::DeviceSimulatorServer(int port, string databaseHostName, 
     mem = new MemFileHandler("mem.dat", 2 * 1024 * 1024);
     dataController = new DeviceDataController(mem);
     queryInfo = { "-1" ,"-1" , "-1" , "-1" , "-1" , "-1" , "-1" , "-1" };
+
+    this->databaseHostName = databaseHostName;
+    this->databaseName = databaseName;
+    this->databaseUserName = databaseUserName;
+    this->databasePasswd = databasePasswd;
+    try
+    {
+        SetCharsetNameOption* opt = new SetCharsetNameOption("utf8");
+        this->conn = new Connection(false);
+        this->conn->set_option(opt);
+        this->conn->connect(databaseName.c_str(), databaseHostName.c_str(), 
+            databaseUserName.c_str(), databasePasswd.c_str(), 3306);
+    }
+    catch(const exception& e)
+    {
+        cerr << e.what() << endl;
+    }
+    
+    
 }
 
 DeviceSimulatorServer::~DeviceSimulatorServer()
@@ -26,6 +45,11 @@ DeviceSimulatorServer::~DeviceSimulatorServer()
     close(epfd);
     delete[] mem;
     delete[] dataController;
+    if (this->conn->connected()){
+        conn->disconnect();
+        delete[] conn;
+    }
+    
 }
 
 void DeviceSimulatorServer::Bind()
@@ -141,6 +165,8 @@ void DeviceSimulatorServer::Recv(int fd)
             {
                 cout << "send() error!" << endl;
                 close_conn = true;
+            }else{
+                sqlWriteService(queryInfo);
             }
         }
     }
@@ -333,240 +359,32 @@ string DeviceSimulatorServer::cmdHandlerService(string cmd, int fd){
 }
 
 string DeviceSimulatorServer::sqlWriteService(QueryInfo queryInfo){
-    return "todo:";
-}
-
-    /**
-
-	int clientFD = 0;
-
-	string reg = ",";
-	int recvByt = 0;
-	int sendSig = 0;
-	char* buf;
-
-	int offset = 0;
-	int bitOffset = 0;
-	int dData = 0;
-	float fData = 0.0f;
-	bool bData = false;
-
-	char recvBuf[1024];
-	char sendBuf[1024];
-	vector<string> cmds;
-	while (true) {
-		string msg = "...";
-		bool success = false;
-		QueryInfo queryInfo = { "-1" ,"-1" , "-1" , "-1" , "-1" , "-1" , "-1" , "-1" };
-		queryInfo.clientId = to_string(*clientSocket);
-		recvByt = recv(*clientSocket, recvBuf, sizeof(recvBuf), 0);
-
-		if (recvByt > 0){
-			
-			char* token = strtok_s(recvBuf, reg.c_str(), &buf);
-			while (token != NULL) {
-				cmds.push_back(token);
-				token = strtok_s(NULL, reg.c_str(), &buf);
-			}
-			int cmdLen = cmds.size();
-			if (cmds[0]=="getb"){
-				if (cmdLen == 3) {
-					try{
-						offset = stoi(cmds[1]);
-						bitOffset = stoi(cmds[2]);
-						bool bmsg = dataController->getBit(offset,bitOffset);
-						success = true;
-						queryInfo.dataType = "Bit";
-						queryInfo.offsetBit = cmds[2];
-						queryInfo.offsetByte = cmds[1];
-						queryInfo.operation = "Get";
-						queryInfo.valueRead = to_string(bmsg);
-						
-						if (bmsg){
-							msg = "True";
-						}
-						else{
-							msg = "False";
-						}
-					}
-					catch (...){
-						msg = "Invalid parameter";
-					}
-				}
-				else {
-					msg = "Invalid parameter";
-				}
-			} 
-			else if (cmds[0] == "setb") {
-				if (cmdLen == 4) {
-					try {
-						offset = stoi(cmds[1]);
-						bitOffset = stoi(cmds[2]);
-						bData = stoi(cmds[3]);
-						dataController->setBit(offset, bitOffset,bData);
-						msg = "Set";
-						success = true;
-						queryInfo.dataType = "Bit";
-						queryInfo.offsetBit = cmds[2];
-						queryInfo.offsetByte = cmds[1];
-						queryInfo.operation = "Set";
-						queryInfo.valueWrite = to_string(bData);	
-					}
-					catch (...) {
-						msg = "Invalid parameter";
-					}
-				}
-				else {
-					msg = "Invalid parameter";
-				}
-			}
-			else if (cmds[0] == "getd") {
-				if (cmdLen == 2) {
-					try {
-						offset = stoi(cmds[1]);
-						msg = to_string(dataController->getDWord(offset));
-						success = true;
-						queryInfo.dataType = "DWord";
-						queryInfo.offsetByte = cmds[1];
-						queryInfo.operation = "Get";
-						queryInfo.valueRead = msg;
-					}
-					catch (...) {
-						msg = "Invalid parameter";
-					}
-				}
-				else {
-					msg = "Invalid parameter";
-				}
-			}
-			else if (cmds[0] == "setd") {
-				if (cmdLen == 3) {
-					try {
-						offset = stoi(cmds[1]);
-						dData = stoi(cmds[2]);
-						dataController->setDWord(offset,dData);
-						msg = "Set";
-						success = true;
-						queryInfo.dataType = "DWord";
-						queryInfo.offsetByte = cmds[1];
-						queryInfo.operation = "Set";
-						queryInfo.valueWrite = to_string(dData);
-					}
-					catch (...) {
-						msg = "Invalid parameter";
-					}
-				}
-				else {
-					msg = "Invalid parameter";
-				}
-			}
-			else if (cmds[0] == "getf") {
-				if (cmdLen == 2) {
-					try {
-						offset = stoi(cmds[1]);
-						msg = to_string(dataController->getFloat(offset));
-						success = true;
-						queryInfo.dataType = "Float";
-						queryInfo.offsetByte = cmds[1];
-						queryInfo.operation = "Get";
-						queryInfo.valueRead = msg;
-					}
-					catch (...) {
-						msg = "Invalid parameter";
-					}
-				}
-				else {
-					msg = "Invalid parameter";
-				}
-			}
-			else if (cmds[0] == "setf") {
-				if (cmdLen == 3) {
-					try {
-						offset = stoi(cmds[1]);
-						fData = stof(cmds[2]);
-						dataController->setFloat(offset, fData);
-						msg = "Set";
-						success = true;
-						queryInfo.dataType = "Float";
-						queryInfo.offsetByte = cmds[1];
-						queryInfo.operation = "Set";
-						queryInfo.valueWrite = to_string(fData);
-					}
-					catch (...) {
-						msg = "Invalid parameter";
-					}
-				}
-				else {
-					msg = "Invalid parameter";
-				}
-			}
-			else if (cmds[0] == "save") {
-				if (cmdLen == 1) {
-					dataController->save();
-					msg = "Saved";
-					success = true;
-					queryInfo.operation = "save";
-				}
-			}
-			else {
-				msg = "Invalid parameter";
-			}
-		}
-		else {
-			break;
-		}
-
-		if (success)
-		{
-            SetCharsetNameOption* opt = new SetCharsetNameOption("utf8");
-	        Connection conn(false);
-	        conn.set_option(opt);
-			time_t timep;
-			time(&timep);
-			char tmp[256];
-			strftime(tmp, sizeof(tmp), "%Y-%m-%d %H:%M:%S", localtime(&timep));
-			queryInfo.operationDT = tmp;
-
-			if (conn.connect(databaseName, databaseHostName, databaseUserName, databasePasswd))
-			{
-				string sql = "INSERT INTO `device_log`.`operation_log` (`operation`, `data_type`, `offset_byte`, `offset_bit`, `value_write`, `value_read`, `client_id`, `operation_dt`) \
+    if (conn->connected())
+    {
+        string sql = "INSERT INTO `device_log`.`operation_log` (`operation`, `data_type`, `offset_byte`, `offset_bit`, `value_write`, `value_read`, `client_id`, `operation_dt`) \
 VALUES('" + queryInfo.operation + "', '" + queryInfo.dataType + "', " + queryInfo.offsetByte + ", " + queryInfo.offsetBit + ", " + queryInfo.valueWrite + ", " + queryInfo.valueRead + ", " + queryInfo.clientId + ", '" + queryInfo.operationDT + "')";
-				Query query = conn.query(sql);
-				query.exec();
-				conn.disconnect();
-				//Query query = conn.query("select * from book");
-				//UseQueryResult res = query.use();
-				//if (res)
-				//{
-				//	while (Row row = res.fetch_row())
-				//	{
-				//		cout << setw(9) << "BookName:" << row["bookname"] << endl;
-				//		cout << setw(9) << "Size:" << row["size"] << endl;
-				//	}
-				//}
-				//else
-				//{
-				//	cerr << "Failed to get item list: " << query.error() << endl;
-				//	return 1;
-				//}
-			}
-			else
-			{
-				cout << "DB connection failed: " << conn.error() << endl;
-			}
-		}
-		msg = msg + "\n";
-
-		memcpy(sendBuf, msg.c_str(), sizeof(msg));
-		sendSig = send(*clientSocket, sendBuf, sizeof(msg), 0);
-		cmds.clear();
-		memset(recvBuf, 0, sizeof(recvBuf));
-		memset(sendBuf, 0, sizeof(sendBuf));
-	}
-	int socketNo = *clientSocket;
-	closesocket(*clientSocket);
-	free(clientSocket);
-	cout << "A client has disconnected，socket：" << socketNo << endl;
-	return 0;
-	**/
+        Query query = conn->query(sql);
+        query.exec();
+        //Query query = conn.query("select * from book");
+        //UseQueryResult res = query.use();
+        //if (res)
+        //{
+        //	while (Row row = res.fetch_row())
+        //	{
+        //		cout << setw(9) << "BookName:" << row["bookname"] << endl;
+        //		cout << setw(9) << "Size:" << row["size"] << endl;
+        //	}
+        //}
+        //else
+        //{
+        //	cerr << "Failed to get item list: " << query.error() << endl;
+        //	return 1;
+        //}
+    }
+    else
+    {
+        cout << "DB connection failed: " << conn->error() << endl;
+    }
+    return " ";
+}
  
