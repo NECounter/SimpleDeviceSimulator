@@ -16,6 +16,11 @@
 #include <sys/epoll.h> // epoll
 #include <sys/ioctl.h>
 
+#include <thread>             // std::thread
+#include <mutex>              // std::mutex, std::unique_lock
+#include <condition_variable> // std::condition_variable
+#include <atomic>
+
 #include <mysql++.h>
 
 #include <cstdlib>
@@ -24,11 +29,20 @@
 
 #define _CRT_SECURE_NO_WARINGS
 
+
+#define PORT 8000
+#define DBNAME "device_log"
+#define DBHOST "192.168.3.50"
+#define DBUSER "root"
+#define DBPASSWD "1234"
+
+
 using namespace std;
 using namespace mysqlpp;
 
 #define BUFFER_SIZE 1024
 #define EPOLLSIZE 100
+#define WORKER_SIZE 2
 
 struct PACKET_HEAD // header of one message, describes the size of following message
 {
@@ -48,36 +62,34 @@ struct QueryInfo //infomation of one query
 	std::string operationDT;
 };
 
-class DeviceSimulatorServer
-{
-private:
+
     struct sockaddr_in server_addr;
     socklen_t server_addr_len;
     int listen_fd;                        // listener's fd
-    int epfd;                             // epoll fd
+    int epfdBoss;                             // epoll fd of acceptor
+    int epfdWorkers[WORKER_SIZE];                             // epoll fd of receive1               
     struct epoll_event events[EPOLLSIZE]; // placeholder of event list which epoll_wait retruns
+    int workerIndex = 0;
 
     MemFileHandler* mem;
     DeviceDataController* dataController;
     QueryInfo queryInfo;
 
-    string databaseName;
-    string databaseHostName;
-    string databaseUserName;
-    string databasePasswd;
     Connection* conn;
+    void ServerInit();
 
-    
-public:
-    DeviceSimulatorServer(int port, string databaseHostName, string databaseName, string databaseUserName, string databasePasswd);
-    ~DeviceSimulatorServer();
-    void Bind();
-    void Listen(int queue_len = 20);
-    void Accept();
-    void Run();
-    void Recv(int fd);
+
+    void Recv(int epfdWorker);
     string cmdHandlerService(string cmd, int fd);
     string sqlWriteService(QueryInfo queryInfo);
-};
+    void Accept(int workerId);
+    void EpollThread();
+
+    void Bind();
+    void Listen(int queue_len = 20);
+    
+    void Run();
+
+
 
 

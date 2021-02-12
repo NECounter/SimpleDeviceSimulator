@@ -1,9 +1,9 @@
 CC:=g++-9
 CXXFLAGS := -I/usr/include/mysql -I/usr/local/include/mysql++
 LDFLAGS := -L/usr/local/lib
-LDLIBS := -lmysqlpp -lmysqlclient
+LDLIBS := -lmysqlpp -lmysqlclient -pthread -std=c++17
 
-ServerSource:=DataConvertorUtils.cpp DeviceDataController.cpp DeviceSimulator.cpp DeviceSimulatorServer.cpp FileUtils.cpp MemFileHandler.cpp
+ServerSource:=DataConvertorUtils.cpp DeviceDataController.cpp DeviceSimulatorServer.cpp FileUtils.cpp MemFileHandler.cpp
 
 .PHONY: Client.out DeviceSimulator.out
 DeviceSimulator.out:$(ServerSource)
