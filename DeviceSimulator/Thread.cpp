@@ -5,31 +5,29 @@
 #include <condition_variable> // std::condition_variable
 
 std::mutex mtx;
-std::condition_variable cv;
-bool ready = true;
+bool ready = false;
 
 void print_id (int id) {
   std::unique_lock<std::mutex> lck(mtx);
-  while (!ready) cv.wait(lck);
-  // ...
+  while (!lck.owns_lock()) {
+    lck.lock();
+  }
+
   std::cout << "thread " << id << '\n';
 }
 
-void go() {
-  std::unique_lock<std::mutex> lck(mtx);
-  ready = true;
-  cv.notify_all();
-}
 
 int main ()
 {
+  std::unique_lock<std::mutex> lck(mtx);
   std::thread threads[10];
   // spawn 10 threads:
   for (int i=0; i<10; ++i)
     threads[i] = std::thread(print_id,i);
 
   std::cout << "10 threads ready to race...\n";
-  //go();                       // go!
+  lck.unlock();
+
 
   for (auto& th : threads) th.join();
 

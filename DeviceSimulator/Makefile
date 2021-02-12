@@ -7,7 +7,7 @@ ServerSource:=DataConvertorUtils.cpp DeviceDataController.cpp DeviceSimulatorSer
 
 .PHONY: Client.out DeviceSimulator.out
 DeviceSimulator.out:$(ServerSource)
-	$(CC) $(CXXFLAGS) $(LDFLAGS) $^ -o $@ $(LDLIBS)
+	$(CC) -g $(CXXFLAGS) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 	
 Client.out:Client.cpp
 	$(CC) $^ -o $@

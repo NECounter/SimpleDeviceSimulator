@@ -42,7 +42,7 @@ using namespace mysqlpp;
 
 #define BUFFER_SIZE 1024
 #define EPOLLSIZE 100
-#define WORKER_SIZE 2
+#define WORKER_SIZE 3
 
 struct PACKET_HEAD // header of one message, describes the size of following message
 {
@@ -71,19 +71,23 @@ struct QueryInfo //infomation of one query
     struct epoll_event events[EPOLLSIZE]; // placeholder of event list which epoll_wait retruns
     int workerIndex = 0;
 
+    //save lock
+    mutex saveMTX;
+
     MemFileHandler* mem;
     DeviceDataController* dataController;
     QueryInfo queryInfo;
 
     Connection* conn;
     void ServerInit();
+    void ServerDispose();
 
 
     void Recv(int epfdWorker);
     string cmdHandlerService(string cmd, int fd);
     string sqlWriteService(QueryInfo queryInfo);
     void Accept(int workerId);
-    void EpollThread();
+    void EpollThread(int flag);
 
     void Bind();
     void Listen(int queue_len = 20);
