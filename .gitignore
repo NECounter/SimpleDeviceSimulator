@@ -1,0 +1,8 @@
+/.vs
+x64/
+libs/
+*.dll
+*.libs
+*.dat
+*.out
+.vscode/

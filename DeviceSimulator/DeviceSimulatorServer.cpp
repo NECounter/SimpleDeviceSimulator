@@ -32,8 +32,13 @@ void ServerInit(){
         conn = new Connection(false);
         conn->set_option(&charsetOpt);
         conn->connect(DBNAME, DBHOST, DBUSER, DBPASSWD, 3306);
+        if (conn->connected())
+        {
+            DBConnected = true;
+        }  
     }
     catch(const exception& e){
+
         cerr << e.what() << "\n";
     }
 }
@@ -369,7 +374,7 @@ string cmdHandlerService(string cmd, int fd){
 }
 
 bool sqlWriteService(QueryInfo queryInfo){
-    if (conn->connected()){
+    if (DBConnected){
         string sql = "INSERT INTO `device_log`.`operation_log` (`operation`, `data_type`, `offset_byte`, `offset_bit`, `value_write`, `value_read`, `client_id`, `operation_dt`) \
 VALUES('" + queryInfo.operation + "', '" + queryInfo.dataType + "', " + queryInfo.offsetByte + ", " + queryInfo.offsetBit + ", " + queryInfo.valueWrite + ", " + queryInfo.valueRead + ", " + queryInfo.clientId + ", '" + queryInfo.operationDT + "')";
         Query query = conn->query(sql);
@@ -377,7 +382,7 @@ VALUES('" + queryInfo.operation + "', '" + queryInfo.dataType + "', " + queryInf
         return true;
     }
     else{
-        cout << "DB connection failed: " << conn->error() << "\n";
+        //cout << "DB connection failed: " << conn->error() << "\n";
         return false;
     }
 }

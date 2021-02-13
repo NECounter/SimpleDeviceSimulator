@@ -34,7 +34,7 @@
 #define DBNAME "device_log"
 #define DBHOST "192.168.3.50"
 #define DBUSER "root"
-#define DBPASSWD "1234"
+#define DBPASSWD "123"
 
 
 using namespace std;
@@ -44,14 +44,12 @@ using namespace mysqlpp;
 #define EPOLLSIZE 100
 #define WORKER_SIZE 3
 
-struct PACKET_HEAD // header of one message, describes the size of following message
-{
+struct PACKET_HEAD{// header of one message, describes the size of following message
     int length;
 };
 
 
-struct QueryInfo //infomation of one query
-{
+struct QueryInfo{ //infomation of one query
 	std::string operation;
 	std::string dataType;
 	std::string offsetByte;
@@ -79,6 +77,7 @@ struct QueryInfo //infomation of one query
     QueryInfo queryInfo;
 
     Connection* conn;
+    bool DBConnected = false;
     void ServerInit();
     void ServerDispose();
 
