@@ -131,8 +131,6 @@ void Accept(int workerId){
     }
 }
 
-
-
 void Recv(int epfdWorker){
     int numsWorker = epoll_wait(epfdWorker, events, EPOLLSIZE, -1);
     if (numsWorker < 0){
@@ -145,43 +143,26 @@ void Recv(int epfdWorker){
                 int fd = events[i].data.fd;
                 bool close_conn = false; // an indicator of the status of this fd
 
-                PACKET_HEAD head;
-                int recvByte = recv(fd, &head, sizeof(head), 0); // receive the messae header first
-                if (recvByte > 0){
-                    char recvBuffer[head.length];
-                    bzero(recvBuffer, head.length);
-                    int total = 0;
-                    while (total < head.length){
-                        int len = recv(fd, recvBuffer + total, head.length - total, 0);
-                        if (len < 0){
-                            cout << "recv() error!\n";
-                            close_conn = true;
-                            break;
-                        }
-                        total = total + len;
-                    }
-
-                    if (total == head.length){ // finished receiving, prepare to send messages to the clinet
-                        string msg = cmdHandlerService(recvBuffer, fd);
-                        head.length = msg.size() + 1;
-                        char* sendBuffer[head.length];
-                        memcpy(sendBuffer, msg.c_str(), head.length);
-                        
-                        int ret1 = send(fd, &head, sizeof(head), 0);
-                        int ret2 = send(fd, sendBuffer, head.length, 0);
-                        if (ret1 < 0 || ret2 < 0){
-                            cout << "send() error!\n";
-                            close_conn = true;
-                        }else{
-                            sqlWriteService(queryInfo);
-                        }
-                    }
+                int len = recv(fd, recvBuffer, sizeof(recvBuffer), 0);
+                if (len < 0){
+                    cout << "recv() error!\n";
+                    close_conn = true;
+                    
                 }
                 else{
-                    close_conn = true;
-                }
+                    //string msg = cmdHandlerService(recvBuffer, fd);
+                    string msg = "ok";
 
-                
+                    msg += "\n";
+            
+                    int ret1 = send(fd, msg.c_str(), sizeof(msg), 0);
+                    if (ret1 < 0){
+                        cout << "send() error!\n";
+                        close_conn = true;
+                    }else{
+                        //sqlWriteService(queryInfo);
+                    }
+                }          
 
                 if (close_conn){ // bad cnnection, close it
                     close(fd);

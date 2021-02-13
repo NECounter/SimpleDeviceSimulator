@@ -44,10 +44,6 @@ using namespace mysqlpp;
 #define EPOLLSIZE 100
 #define WORKER_SIZE 3
 
-struct PACKET_HEAD{// header of one message, describes the size of following message
-    int length;
-};
-
 
 struct QueryInfo{ //infomation of one query
 	std::string operation;
@@ -68,7 +64,7 @@ struct QueryInfo{ //infomation of one query
     int epfdWorkers[WORKER_SIZE];                             // epoll fd of receive1               
     struct epoll_event events[EPOLLSIZE]; // placeholder of event list which epoll_wait retruns
     int workerIndex = 0;
-
+    char recvBuffer[BUFFER_SIZE];
     //save lock
     mutex saveMTX;
 

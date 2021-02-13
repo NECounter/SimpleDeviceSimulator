@@ -15,14 +15,14 @@
 using namespace std;
 #define BUFFER_SIZE 1024
 
-struct PACKET_HEAD{
-    int length;
-};
-
-
 
 struct sockaddr_in server_addr;
 socklen_t server_addr_len;
+
+char recvBuf[BUFFER_SIZE];
+
+
+
 
 int ClientInit(string ip, int port);
 void Connect(int fd);
@@ -66,37 +66,22 @@ void Connect(int fd)
 void Send(string str, int fd)
 {
     cout << str << endl;
-    PACKET_HEAD head;
-    head.length = str.size()+1;   // 注意这里需要+1
-    int ret1 = send(fd, &head, sizeof(head), 0);
-    int ret2 = send(fd, str.c_str(), head.length, 0);
-    if(ret1 < 0 || ret2 < 0)
+    int ret1 = send(fd, str.c_str(), sizeof(str), 0);
+    if(ret1 < 0)
     {
         cout << "Send Message Failed!\n";
-        exit(1);
+        exit;
     }
 }
 
 string Recv(int fd)
 {
-    PACKET_HEAD head;
-    recv(fd, &head, sizeof(head), 0);
-
-    char* buffer = new char[head.length];
-    bzero(buffer, head.length);
-    int total = 0;
-    while(total < head.length)
+    int len = recv(fd, recvBuf, sizeof(recvBuf), 0);
+    if(len < 0)
     {
-        int len = recv(fd, buffer + total, head.length - total, 0);
-        if(len < 0)
-        {
-            cout << "recv() error!\n";
-            break;
-        }
-        total = total + len;
+        cout << "recv() error!\n";
     }
-    string result(buffer);
-    delete buffer;
+    string result(recvBuf);
     return result;
 }
 
@@ -108,6 +93,7 @@ void ClientThread(int id){
     while(1)
     {
         string cmds[8] = {"getb,0,0", "setb,0,0,1", "getd,4", "setd,4,100", "getf,8", "setf,8,3.14", "save", "?"};
+        
 
         Send(cmds[(e() + id) %8], fd);
         cout << Recv(fd) << " :"<< id <<": "<< count++ << "\n";
