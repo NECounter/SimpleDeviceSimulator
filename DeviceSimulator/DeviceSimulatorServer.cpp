@@ -51,7 +51,7 @@ void ServerDispose(){
 void Bind(){
     if (-1 == (bind(listen_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)))){
         cout << "Server Bind Failed!\n";
-        exit(1);
+        exit;
     }
     cout << "Bind Successfully.\n";
 }
@@ -59,7 +59,7 @@ void Bind(){
 void Listen(int queue_len){
     if (-1 == listen(listen_fd, queue_len)){
         cout << "Server Listen Failed!\n";
-        exit(1);
+        exit;
     }
     cout << "Listen Successfully.\n";
 }
