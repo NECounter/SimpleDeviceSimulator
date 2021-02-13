@@ -85,7 +85,7 @@ struct QueryInfo //infomation of one query
 
     void Recv(int epfdWorker);
     string cmdHandlerService(string cmd, int fd);
-    string sqlWriteService(QueryInfo queryInfo);
+    bool sqlWriteService(QueryInfo queryInfo);
     void Accept(int workerId);
     void EpollThread(int flag);
 

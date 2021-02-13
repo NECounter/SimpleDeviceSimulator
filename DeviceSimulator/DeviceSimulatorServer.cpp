@@ -64,25 +64,6 @@ void Listen(int queue_len){
     cout << "Listen Successfully.\n";
 }
 
-void Accept(int workerId){
-    struct sockaddr_in client_addr;
-    socklen_t client_addr_len = sizeof(client_addr);
-
-    int new_fd = accept(listen_fd, (struct sockaddr *)&client_addr, &client_addr_len);
-    if (new_fd < 0){
-        cout << "Server Accept Failed!\n";
-    }
-
-    cout << "new connection was accepted.\n";
-
-    // register the incomming fd to epfd
-    struct epoll_event event;
-    event.data.fd = new_fd;
-    event.events = EPOLLIN;
-
-    epoll_ctl(epfdWorkers[workerId], EPOLL_CTL_ADD, new_fd, &event); // epoll is thread-safe
-}
-
 void Run(){
     epfdBoss = epoll_create(1); // create epoll handler and return its fd
     for (int i = 0; i < WORKER_SIZE; i++){
@@ -106,24 +87,46 @@ void Run(){
 void EpollThread(int flag){
     while (1){
         if (flag == 0){
-            int numsBoss = epoll_wait(epfdBoss, events, EPOLLSIZE, -1);
-            if (numsBoss < 0){
-                cout << "Boss Error!\n";
-            }
-
-            if (numsBoss > 0){
-                for (int i = 0; i < numsBoss; i++){
-                    if (events[i].events == EPOLLIN){
-                        Accept(++workerIndex % 2);
-                    }  
-                }          
-            }
+            Accept(++workerIndex % 2);
         }
         else{
             Recv(epfdWorkers[flag-1]);   
         }
     }
 }
+
+
+void Accept(int workerId){
+    int numsBoss = epoll_wait(epfdBoss, events, EPOLLSIZE, -1);
+    if (numsBoss < 0){
+        cout << "Boss Error!\n";
+    }
+
+    if (numsBoss > 0){
+        for (int i = 0; i < numsBoss; i++){
+            if (events[i].events == EPOLLIN){
+                struct sockaddr_in client_addr;
+                socklen_t client_addr_len = sizeof(client_addr);
+
+                int new_fd = accept(listen_fd, (struct sockaddr *)&client_addr, &client_addr_len);
+                if (new_fd < 0){
+                    cout << "Server Accept Failed!\n";
+                }
+
+                cout << "new connection was accepted.\n";
+
+                // register the incomming fd to epfd
+                struct epoll_event event;
+                event.data.fd = new_fd;
+                event.events = EPOLLIN;
+
+                epoll_ctl(epfdWorkers[workerId], EPOLL_CTL_ADD, new_fd, &event); // epoll is thread-safe
+            }  
+        }          
+    }
+}
+
+
 
 void Recv(int epfdWorker){
     int numsWorker = epoll_wait(epfdWorker, events, EPOLLSIZE, -1);
@@ -365,16 +368,17 @@ string cmdHandlerService(string cmd, int fd){
     return msg;
 }
 
-string sqlWriteService(QueryInfo queryInfo){
+bool sqlWriteService(QueryInfo queryInfo){
     if (conn->connected()){
         string sql = "INSERT INTO `device_log`.`operation_log` (`operation`, `data_type`, `offset_byte`, `offset_bit`, `value_write`, `value_read`, `client_id`, `operation_dt`) \
 VALUES('" + queryInfo.operation + "', '" + queryInfo.dataType + "', " + queryInfo.offsetByte + ", " + queryInfo.offsetBit + ", " + queryInfo.valueWrite + ", " + queryInfo.valueRead + ", " + queryInfo.clientId + ", '" + queryInfo.operationDT + "')";
         Query query = conn->query(sql);
         query.exec();
+        return true;
     }
     else{
         cout << "DB connection failed: " << conn->error() << "\n";
+        return false;
     }
-    return " ";
 }
  
