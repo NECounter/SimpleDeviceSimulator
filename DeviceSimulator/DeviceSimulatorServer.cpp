@@ -92,24 +92,26 @@ void Run(){
 void EpollThread(int flag){
     while (1){
         if (flag == 0){
+            //cout << "accept\n";
             Accept(++workerIndex % 2);
         }
         else{
-            Recv(epfdWorkers[flag-1]);   
+            //cout << "recv\n";
+            Recv(flag-1);   
         }
     }
 }
 
 
 void Accept(int workerId){
-    int numsBoss = epoll_wait(epfdBoss, events, EPOLLSIZE, -1);
+    int numsBoss = epoll_wait(epfdBoss, acceptEvents, EPOLLSIZE, -1);
     if (numsBoss < 0){
         cout << "Boss Error!\n";
     }
 
     if (numsBoss > 0){
         for (int i = 0; i < numsBoss; i++){
-            if (events[i].events == EPOLLIN){
+            if (acceptEvents[i].events == EPOLLIN){
                 struct sockaddr_in client_addr;
                 socklen_t client_addr_len = sizeof(client_addr);
 
@@ -131,48 +133,55 @@ void Accept(int workerId){
     }
 }
 
-void Recv(int epfdWorker){
-    int numsWorker = epoll_wait(epfdWorker, events, EPOLLSIZE, -1);
+void Recv(int workerId){
+    int epfdWorker = epfdWorkers[workerId];
+    int numsWorker = epoll_wait(epfdWorker, recvEvents[workerId], EPOLLSIZE, -1);
+    //cout << workerId << " : " <<numsWorker << "\n";
     if (numsWorker < 0){
          cout << "Worker Error!\n";
     }
 
+     bool close_conn = false; // an indicator of the status of this fd
+
     if (numsWorker > 0){
         for (int i = 0; i < numsWorker; i++){
-            if (events[i].events == EPOLLIN){
-                int fd = events[i].data.fd;
-                bool close_conn = false; // an indicator of the status of this fd
-
+            //cout << "events: " << recvEvents[workerId][i].events << "\n";
+            int fd = recvEvents[workerId][i].data.fd;
+            if (recvEvents[workerId][i].events == EPOLLIN){
                 int len = recv(fd, recvBuffer, sizeof(recvBuffer), 0);
-                if (len < 0){
+                //cout << "buffer: " << recvBuffer << "\n";
+                if (len <= 0){
                     cout << "recv() error!\n";
                     close_conn = true;
                     
                 }
                 else{
-                    //string msg = cmdHandlerService(recvBuffer, fd);
-                    string msg = "ok";
+                    string msg = cmdHandlerService(recvBuffer, fd);
+                    //string msg = "ok";
 
                     msg += "\n";
             
                     int ret1 = send(fd, msg.c_str(), sizeof(msg), 0);
-                    if (ret1 < 0){
+                    if (ret1 <= 0){
                         cout << "send() error!\n";
                         close_conn = true;
                     }else{
                         //sqlWriteService(queryInfo);
                     }
                 }          
-
-                if (close_conn){ // bad cnnection, close it
-                    close(fd);
-                    struct epoll_event event;
-                    event.data.fd = fd;
-                    event.events = EPOLLIN;
-                    epoll_ctl(epfdWorker, EPOLL_CTL_DEL, fd, &event); // use epoll_ctl to del a fd from epoll
-                    cout << "A client has disconneted\n";
-                }
             }    
+            else if(recvEvents[workerId][i].events != EPOLLIN){
+                close_conn = true;
+
+            }
+            if (close_conn){ // bad cnnection, close it
+                struct epoll_event event;
+                event.data.fd = fd;
+                event.events = EPOLLIN;
+                epoll_ctl(epfdWorker, EPOLL_CTL_DEL, fd, &event); // use epoll_ctl to del a fd from epoll
+                close(fd);
+                cout << "A client has disconneted\n";
+            }
         }
     }
 }

@@ -62,7 +62,8 @@ struct QueryInfo{ //infomation of one query
     int listen_fd;                        // listener's fd
     int epfdBoss;                             // epoll fd of acceptor
     int epfdWorkers[WORKER_SIZE];                             // epoll fd of receive1               
-    struct epoll_event events[EPOLLSIZE]; // placeholder of event list which epoll_wait retruns
+    struct epoll_event acceptEvents[EPOLLSIZE]; // placeholder of event list which epoll_wait retruns
+    struct epoll_event recvEvents[WORKER_SIZE][EPOLLSIZE]; // placeholder of event list which epoll_wait retruns
     int workerIndex = 0;
     char recvBuffer[BUFFER_SIZE];
     //save lock
