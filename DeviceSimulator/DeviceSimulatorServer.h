@@ -40,9 +40,9 @@
 using namespace std;
 using namespace mysqlpp;
 
-#define BUFFER_SIZE 1024
-#define EPOLLSIZE 100
-#define WORKER_SIZE 3
+#define BUFFER_SIZE 1024 //size of recv and send buffer
+#define EPOLLSIZE 100 //size of epoll lists
+#define WORKER_SIZE 3 //number of workers (1 boss, n workers)
 
 
 struct QueryInfo{ //infomation of one query
@@ -60,10 +60,10 @@ struct QueryInfo{ //infomation of one query
     struct sockaddr_in server_addr;
     socklen_t server_addr_len;
     int listen_fd;                        // listener's fd
-    int epfdBoss;                             // epoll fd of acceptor
-    int epfdWorkers[WORKER_SIZE];                             // epoll fd of receive1               
-    struct epoll_event acceptEvents[EPOLLSIZE]; // placeholder of event list which epoll_wait retruns
-    struct epoll_event recvEvents[WORKER_SIZE][EPOLLSIZE]; // placeholder of event list which epoll_wait retruns
+    int epfdBoss;                             // epoll fd of boss
+    int epfdWorkers[WORKER_SIZE];                             // epoll fds of workers           
+    struct epoll_event acceptEvents[EPOLLSIZE]; // placeholder of event list which epoll_wait retruns (for boss)
+    struct epoll_event recvEvents[WORKER_SIZE][EPOLLSIZE]; // placeholder of event list which epoll_wait retruns (for workers)
     int workerIndex = 0;
     char recvBuffer[BUFFER_SIZE];
     //save lock
@@ -75,20 +75,26 @@ struct QueryInfo{ //infomation of one query
 
     Connection* conn;
     bool DBConnected = false;
-    void ServerInit();
-    void ServerDispose();
-
-
-    void Recv(int epfdWorker);
-    string cmdHandlerService(string cmd, int fd);
-    bool sqlWriteService(QueryInfo queryInfo);
-    void Accept(int workerId);
-    void EpollThread(int flag);
-
+    
+    void ServerInit(); // init 
     void Bind();
     void Listen(int queue_len = 20);
-    
     void Run();
+    void ServerDispose(); //dispose
+
+    void EpollThread(int flag); // An epoll thread
+
+    void Accept(int workerId); // (jobs of boss)
+    void Recv(int epfdWorker); // (jobs oof workers)
+    
+    string cmdHandlerService(string cmd, int fd); // server service
+    bool sqlWriteService(QueryInfo queryInfo);
+    
+    
+
+   
+    
+    
 
 
 

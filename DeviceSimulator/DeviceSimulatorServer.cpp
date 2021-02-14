@@ -24,9 +24,12 @@ void ServerInit(){
     int opt = 1;
     setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
+    // load something
     mem = new MemFileHandler("mem.dat", 2 * 1024 * 1024);
     dataController = new DeviceDataController(mem);
     queryInfo = { "-1" ,"-1" , "-1" , "-1" , "-1" , "-1" , "-1" , "-1" };
+
+    // create connection to DB 
     SetCharsetNameOption charsetOpt("utf8");
     try{
         conn = new Connection(false);
@@ -80,22 +83,24 @@ void Run(){
     struct epoll_event event;
     event.data.fd = listen_fd;
     event.events = EPOLLIN;
-    epoll_ctl(epfdBoss, EPOLL_CTL_ADD, listen_fd, &event); 
+    epoll_ctl(epfdBoss, EPOLL_CTL_ADD, listen_fd, &event); // register listeners fd to epfdBoss
+
+    // init epoll threads (boss(0) + workers(1,2...))
     thread epollThread[WORKER_SIZE+1];
     for (int i = 0; i < WORKER_SIZE+1; i++){
         epollThread[i] = thread(EpollThread, i);
     }
 
-    for (auto& th : epollThread) th.join();
+    for (auto& th : epollThread) th.join(); // join to the mian thread
 }
 
 void EpollThread(int flag){
     while (1){
-        if (flag == 0){
+        if (flag == 0){ // boss
             //cout << "accept\n";
-            Accept(++workerIndex % 2);
+            Accept(++workerIndex % 2); // assign incoming socket connections to workers by Round Robin 
         }
-        else{
+        else{ //workers
             //cout << "recv\n";
             Recv(flag-1);   
         }
@@ -104,18 +109,18 @@ void EpollThread(int flag){
 
 
 void Accept(int workerId){
-    int numsBoss = epoll_wait(epfdBoss, acceptEvents, EPOLLSIZE, -1);
+    int numsBoss = epoll_wait(epfdBoss, acceptEvents, EPOLLSIZE, -1); //waiting for new connections (blocking)
     if (numsBoss < 0){
         cout << "Boss Error!\n";
     }
 
-    if (numsBoss > 0){
+    if (numsBoss > 0){ // incoming connections
         for (int i = 0; i < numsBoss; i++){
             if (acceptEvents[i].events == EPOLLIN){
                 struct sockaddr_in client_addr;
                 socklen_t client_addr_len = sizeof(client_addr);
 
-                int new_fd = accept(listen_fd, (struct sockaddr *)&client_addr, &client_addr_len);
+                int new_fd = accept(listen_fd, (struct sockaddr *)&client_addr, &client_addr_len); // accept new connections
                 if (new_fd < 0){
                     cout << "Server Accept Failed!\n";
                 }
@@ -127,7 +132,7 @@ void Accept(int workerId){
                 event.data.fd = new_fd;
                 event.events = EPOLLIN;
 
-                epoll_ctl(epfdWorkers[workerId], EPOLL_CTL_ADD, new_fd, &event); // epoll is thread-safe
+                epoll_ctl(epfdWorkers[workerId], EPOLL_CTL_ADD, new_fd, &event); // register workers' fd to epfdWorker (epoll is thread-safe)
             }  
         }          
     }
@@ -135,33 +140,31 @@ void Accept(int workerId){
 
 void Recv(int workerId){
     int epfdWorker = epfdWorkers[workerId];
-    int numsWorker = epoll_wait(epfdWorker, recvEvents[workerId], EPOLLSIZE, -1);
-    //cout << workerId << " : " <<numsWorker << "\n";
+    int numsWorker = epoll_wait(epfdWorker, recvEvents[workerId], EPOLLSIZE, -1); // waiting for socket readable events (blocking)
+    
     if (numsWorker < 0){
          cout << "Worker Error!\n";
     }
 
      bool close_conn = false; // an indicator of the status of this fd
 
-    if (numsWorker > 0){
+    if (numsWorker > 0){ 
         for (int i = 0; i < numsWorker; i++){
-            //cout << "events: " << recvEvents[workerId][i].events << "\n";
+    
             int fd = recvEvents[workerId][i].data.fd;
-            if (recvEvents[workerId][i].events == EPOLLIN){
+            if (recvEvents[workerId][i].events == EPOLLIN){ // incoming messages
                 int len = recv(fd, recvBuffer, sizeof(recvBuffer), 0);
-                //cout << "buffer: " << recvBuffer << "\n";
+            
                 if (len <= 0){
                     cout << "recv() error!\n";
-                    close_conn = true;
-                    
+                    close_conn = true;  
                 }
                 else{
-                    string msg = cmdHandlerService(recvBuffer, fd);
-                    //string msg = "ok";
-
+                    string msg = cmdHandlerService(recvBuffer, fd); // the main service of this server
+                
                     msg += "\n";
             
-                    int ret1 = send(fd, msg.c_str(), sizeof(msg), 0);
+                    int ret1 = send(fd, msg.c_str(), sizeof(msg), 0); // return results to clients
                     if (ret1 <= 0){
                         cout << "send() error!\n";
                         close_conn = true;
@@ -170,7 +173,7 @@ void Recv(int workerId){
                     }
                 }          
             }    
-            else if(recvEvents[workerId][i].events != EPOLLIN){
+            else if(recvEvents[workerId][i].events != EPOLLIN){ // other events, close this connection
                 close_conn = true;
 
             }
@@ -339,11 +342,7 @@ string cmdHandlerService(string cmd, int fd){
     }
     else if (cmds[0] == "save") {
         if (cmdLen == 1) {
-            unique_lock<mutex> saveLock(saveMTX);
-            while (!saveLock.owns_lock())
-            {
-                saveLock.lock();
-            }
+            unique_lock<mutex> saveLock(saveMTX); // should write codes which are thread-safe
             dataController->save();
             msg = "Saved";
             queryInfo.operation = "save";

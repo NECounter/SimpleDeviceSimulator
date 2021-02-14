@@ -92,10 +92,11 @@ void ClientThread(int id){
     int count = 0;
     while(1)
     {
-        string cmds[8] = {"getb,0,0", "setb,0,0,1", "getd,4", "setd,4,100", "getf,8", "setf,8,3.14", "save", "?"};
-        
+        //string cmds[8] = {"getb,0,0", "setb,0,0,1", "getd,4", "setd,4,100", "getf,8", "setf,8,3.14", "save", "?"};
+        //Send(cmds[(e() + id) %8], fd);
 
-        Send(cmds[(e() + id) %8], fd);
+        Send("save", fd);
+
         cout << Recv(fd) << " :"<< id <<": "<< count++ << "\n";
     }
 }

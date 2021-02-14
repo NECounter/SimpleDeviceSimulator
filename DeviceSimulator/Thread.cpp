@@ -8,8 +8,11 @@ std::mutex mtx;
 bool ready = false;
 
 void print_id (int id) {
+  std::cout << "try to lock\n";
   std::unique_lock<std::mutex> lck(mtx);
+  std::cout << "try to lock??\n";
   while (!lck.owns_lock()) {
+    
     lck.lock();
   }
 
