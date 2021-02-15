@@ -41,7 +41,7 @@ using namespace std;
 using namespace mysqlpp;
 
 #define BUFFER_SIZE 1024 //size of recv and send buffer
-#define EPOLLSIZE 100 //size of epoll lists
+#define EPOLLSIZE 1024 //size of epoll lists
 #define WORKER_SIZE 3 //number of workers (1 boss, n workers)
 
 

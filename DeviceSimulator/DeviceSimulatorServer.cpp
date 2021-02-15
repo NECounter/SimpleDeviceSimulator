@@ -73,7 +73,7 @@ void Listen(int queue_len){
 }
 
 void Run(){
-    epfdBoss = epoll_create(1); // create epoll handler and return its fd
+    epfdBoss = epoll_create(EPOLLSIZE); // create epoll handler and return its fd
     for (int i = 0; i < WORKER_SIZE; i++){
         epfdWorkers[i] = epoll_create(EPOLLSIZE);
     }
