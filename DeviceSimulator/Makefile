@@ -9,6 +9,6 @@ ServerSource:=DataConvertorUtils.cpp DeviceDataController.cpp DeviceSimulatorSer
 DeviceSimulator.out:$(ServerSource)
 	$(CC) -g $(CXXFLAGS) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 	
-Client.out:Client.cpp
-	$(CC) $^ -o $@
+Client.out:ClientMT.cpp
+	$(CC) $^ -o $@ -std=c++17 -pthread
 

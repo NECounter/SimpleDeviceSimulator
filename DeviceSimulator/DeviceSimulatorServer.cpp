@@ -98,7 +98,7 @@ void EpollThread(int flag){
     while (1){
         if (flag == 0){ // boss
             //cout << "accept\n";
-            Accept(++workerIndex % 2); // assign incoming socket connections to workers by Round Robin 
+            Accept(++workerIndex % WORKER_SIZE); // assign incoming socket connections to workers by Round Robin 
         }
         else{ //workers
             //cout << "recv\n";
@@ -124,15 +124,17 @@ void Accept(int workerId){
                 if (new_fd < 0){
                     cout << "Server Accept Failed!\n";
                 }
+                else{
+                    cout << "new connection was accepted.\n";
 
-                cout << "new connection was accepted.\n";
+                    // register the incomming fd to epfd
+                    struct epoll_event event;
+                    event.data.fd = new_fd;
+                    event.events = EPOLLIN;
 
-                // register the incomming fd to epfd
-                struct epoll_event event;
-                event.data.fd = new_fd;
-                event.events = EPOLLIN;
+                    epoll_ctl(epfdWorkers[workerId], EPOLL_CTL_ADD, new_fd, &event); // register workers' fd to epfdWorker (epoll is thread-safe)
 
-                epoll_ctl(epfdWorkers[workerId], EPOLL_CTL_ADD, new_fd, &event); // register workers' fd to epfdWorker (epoll is thread-safe)
+                }
             }  
         }          
     }
