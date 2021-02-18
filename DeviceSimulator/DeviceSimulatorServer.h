@@ -78,7 +78,7 @@ struct QueryInfo{ //infomation of one query
     
     void ServerInit(); // init 
     void Bind();
-    void Listen(int queue_len = 20);
+    void Listen(int queue_len = 128);
     void Run();
     void ServerDispose(); //dispose
 
