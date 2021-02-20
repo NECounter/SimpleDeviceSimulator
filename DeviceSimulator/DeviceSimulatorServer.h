@@ -65,7 +65,8 @@ struct QueryInfo{ //infomation of one query
     struct epoll_event acceptEvents[EPOLLSIZE]; // placeholder of event list which epoll_wait retruns (for boss)
     struct epoll_event recvEvents[WORKER_SIZE][EPOLLSIZE]; // placeholder of event list which epoll_wait retruns (for workers)
     int workerIndex = 0;
-    char recvBuffer[BUFFER_SIZE];
+    char recvBuffer[WORKER_SIZE][BUFFER_SIZE];
+    char sendBuffer[WORKER_SIZE][BUFFER_SIZE];
     //save lock
     mutex saveMTX;
 

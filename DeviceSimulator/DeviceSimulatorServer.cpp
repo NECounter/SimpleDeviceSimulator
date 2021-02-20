@@ -155,25 +155,28 @@ void Recv(int workerId){
     
             int fd = recvEvents[workerId][i].data.fd;
             if (recvEvents[workerId][i].events == EPOLLIN){ // incoming messages
-                int len = recv(fd, recvBuffer, sizeof(recvBuffer), 0);
+                int len = recv(fd, recvBuffer[workerId], sizeof(recvBuffer[workerId]), 0);
             
                 if (len <= 0){
                     cout << "recv() error!\n";
                     close_conn = true;  
                 }
                 else{
-                    string msg = cmdHandlerService(recvBuffer, fd); // the main service of this server
+                    string msg = cmdHandlerService(recvBuffer[workerId], fd); // the main service of this server
                 
                     msg += "\n";
+                    memcpy(sendBuffer[workerId], msg.c_str(), strlen(msg.c_str()));
             
-                    int ret1 = send(fd, msg.c_str(), sizeof(msg), 0); // return results to clients
+                    int ret1 = send(fd, sendBuffer[workerId], strlen(msg.c_str()), 0); // return results to clients
                     if (ret1 <= 0){
                         cout << "send() error!\n";
                         close_conn = true;
                     }else{
                         //sqlWriteService(queryInfo);
                     }
-                }          
+                } 
+                memset(recvBuffer[workerId], 0, sizeof(recvBuffer[workerId]));    
+                memset(sendBuffer[workerId], 0, sizeof(sendBuffer[workerId]));      
             }    
             else if(recvEvents[workerId][i].events != EPOLLIN){ // other events, close this connection
                 close_conn = true;
@@ -206,7 +209,7 @@ string cmdHandlerService(string cmd, int fd){
     queryInfo = { "-1" ,"-1" , "-1" , "-1" , "-1" , "-1" , "-1" , "-1" };
     queryInfo.clientId = to_string(fd);
     if(cmd == ""){
-        msg = "Invalid parameter";
+        msg = "Invalid";
         return msg;
     }
     
@@ -216,6 +219,7 @@ string cmdHandlerService(string cmd, int fd){
         cmds.push_back(token);
         token = strtok_r(NULL, reg.c_str(), &buf);
     }
+
     int cmdLen = cmds.size();
     if (cmds[0]=="getb"){
         if (cmdLen == 3) {
@@ -237,11 +241,11 @@ string cmdHandlerService(string cmd, int fd){
                 }
             }
             catch (...){
-                msg = "Invalid parameter";
+                msg = "Invalid";
             }
         }
         else {
-            msg = "Invalid parameter";
+            msg = "Invalid";
         }
     } 
     else if (cmds[0] == "setb") {
@@ -259,11 +263,11 @@ string cmdHandlerService(string cmd, int fd){
                 queryInfo.valueWrite = to_string(bData);	
             }
             catch (...) {
-                msg = "Invalid parameter";
+                msg = "Invalid";
             }
         }
         else {
-            msg = "Invalid parameter";
+            msg = "Invalid";
         }
     }
     else if (cmds[0] == "getd") {
@@ -277,11 +281,11 @@ string cmdHandlerService(string cmd, int fd){
                 queryInfo.valueRead = msg;
             }
             catch (...) {
-                msg = "Invalid parameter";
+                msg = "Invalid";
             }
         }
         else {
-            msg = "Invalid parameter";
+            msg = "Invalid";
         }
     }
     else if (cmds[0] == "setd") {
@@ -297,11 +301,11 @@ string cmdHandlerService(string cmd, int fd){
                 queryInfo.valueWrite = to_string(dData);
             }
             catch (...) {
-                msg = "Invalid parameter";
+                msg = "Invalid";
             }
         }
         else {
-            msg = "Invalid parameter";
+            msg = "Invalid";
         }
     }
     else if (cmds[0] == "getf") {
@@ -315,11 +319,11 @@ string cmdHandlerService(string cmd, int fd){
                 queryInfo.valueRead = msg;
             }
             catch (...) {
-                msg = "Invalid parameter";
+                msg = "Invalid";
             }
         }
         else {
-            msg = "Invalid parameter";
+            msg = "Invalid";
         }
     }
     else if (cmds[0] == "setf") {
@@ -335,11 +339,11 @@ string cmdHandlerService(string cmd, int fd){
                 queryInfo.valueWrite = to_string(fData);
             }
             catch (...) {
-                msg = "Invalid parameter";
+                msg = "Invalid";
             }
         }
         else {
-            msg = "Invalid parameter";
+            msg = "Invalid";
         }
     }
     else if (cmds[0] == "save") {
@@ -352,7 +356,7 @@ string cmdHandlerService(string cmd, int fd){
         }
     }
     else {
-        msg = "Invalid parameter";
+        msg = "Invalid";
     }
 
     time_t timep;
