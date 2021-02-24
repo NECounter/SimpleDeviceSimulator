@@ -70,6 +70,10 @@ struct QueryInfo{ //infomation of one query
     //save lock
     mutex saveMTX;
 
+    //executor lock
+    mutex exeMTX;
+    condition_variable exeCV;
+
     MemFileHandler* mem;
     DeviceDataController* dataController;
     QueryInfo queryInfo;
@@ -87,6 +91,7 @@ struct QueryInfo{ //infomation of one query
 
     void Accept(int workerId); // (jobs of boss)
     void Recv(int epfdWorker); // (jobs oof workers)
+    void Executor(int workerId, int numsEvent);
     
     string cmdHandlerService(string cmd, int fd); // server service
     bool sqlWriteService(QueryInfo queryInfo);

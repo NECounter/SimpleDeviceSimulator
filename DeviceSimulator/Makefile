@@ -5,10 +5,15 @@ LDLIBS := -lmysqlpp -lmysqlclient -pthread -std=c++17
 
 ServerSource:=DataConvertorUtils.cpp DeviceDataController.cpp DeviceSimulatorServer.cpp FileUtils.cpp MemFileHandler.cpp
 
-.PHONY: Client.out DeviceSimulator.out
-DeviceSimulator.out:$(ServerSource)
+ServerSource_Active:=DataConvertorUtils.cpp DeviceDataController.cpp DeviceSimulatorServer_Active.cpp FileUtils.cpp MemFileHandler.cpp
+
+.PHONY: Client DeviceSimulator DeviceSimulator_Active
+DeviceSimulator:$(ServerSource)
+	$(CC) -g $(CXXFLAGS) $(LDFLAGS) $^ -o $@ $(LDLIBS)
+
+DeviceSimulator_Active:$(ServerSource_Active)
 	$(CC) -g $(CXXFLAGS) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 	
-Client.out:ClientMT.cpp
+Client:ClientMT.cpp
 	$(CC) $^ -o $@ -std=c++17 -pthread
 
