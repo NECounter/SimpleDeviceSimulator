@@ -1,4 +1,4 @@
-#include "DeviceSimulatorServer.h"
+#include "DeviceSimulatorServer_Active.h"
 
 int main() {
 	ServerInit();
@@ -74,9 +74,7 @@ void Listen(int queue_len){
 
 void Run(){
     epfdBoss = epoll_create(EPOLLSIZE); // create epoll handler and return its fd
-    for (int i = 0; i < WORKER_SIZE; i++){
-        epfdWorkers[i] = epoll_create(EPOLLSIZE);
-    }
+    epfdDispatcher = epoll_create(EPOLLSIZE);
 
 
     // register the listen_fd to epfd
@@ -85,76 +83,104 @@ void Run(){
     event.events = EPOLLIN;
     epoll_ctl(epfdBoss, EPOLL_CTL_ADD, listen_fd, &event); // register listeners fd to epfdBoss
 
-    // init epoll threads (boss(0) + workers(1,2...))
-    thread epollThread[WORKER_SIZE+1];
-    for (int i = 0; i < WORKER_SIZE+1; i++){
-        epollThread[i] = thread(EpollThread, i);
+    thread workerThreads[WORKER_SIZE];
+    for (int i = 0; i < WORKER_SIZE; i++){
+        workerThreads[i] = thread(Worker, i); 
     }
-
-    for (auto& th : epollThread) th.join(); // join to the mian thread
-}
-
-void EpollThread(int flag){
-    while (1){
-        if (flag == 0){ // boss
-            //cout << "accept\n";
-            Accept(++workerIndex % WORKER_SIZE); // assign incoming socket connections to workers by Round Robin 
-        }
-        else{ //workers
-            //cout << "recv\n";
-            Recv(flag-1);   
-        }
-    }
-}
-
-
-void Accept(int workerId){
-    int numsBoss = epoll_wait(epfdBoss, acceptEvents, EPOLLSIZE, -1); //waiting for new connections (blocking)
-    if (numsBoss < 0){
-        cout << "Boss Error!\n";
-    }
-
-    if (numsBoss > 0){ // incoming connections
-        for (int i = 0; i < numsBoss; i++){
-            if (acceptEvents[i].events == EPOLLIN){
-                struct sockaddr_in client_addr;
-                socklen_t client_addr_len = sizeof(client_addr);
-
-                int new_fd = accept(listen_fd, (struct sockaddr *)&client_addr, &client_addr_len); // accept new connections
-                if (new_fd < 0){
-                    cout << "Server Accept Failed!\n";
-                }
-                else{
-                    cout << "new connection was accepted.\n";
-
-                    // register the incomming fd to epfd
-                    struct epoll_event event;
-                    event.data.fd = new_fd;
-                    event.events = EPOLLIN;
-
-                    epoll_ctl(epfdWorkers[workerId], EPOLL_CTL_ADD, new_fd, &event); // register workers' fd to epfdWorker (epoll is thread-safe)
-
-                }
-            }  
-        }          
-    }
-}
-
-void Recv(int workerId){
-    int epfdWorker = epfdWorkers[workerId];
-    int numsWorker = epoll_wait(epfdWorker, recvEvents[workerId], EPOLLSIZE, -1); // waiting for socket readable events (blocking)
     
-    if (numsWorker < 0){
-         cout << "Worker Error!\n";
-    }
-
-     bool close_conn = false; // an indicator of the status of this fd
-
-    if (numsWorker > 0){ 
-        for (int i = 0; i < numsWorker; i++){
     
-            int fd = recvEvents[workerId][i].data.fd;
-            if (recvEvents[workerId][i].events == EPOLLIN){ // incoming messages
+    thread acceptThread = thread(Accept);
+    thread disPatchThread = thread(Dispatch);
+
+    acceptThread.join();
+    disPatchThread.join();
+    for (auto& th : workerThreads) th.join(); // join to the mian thread
+
+ 
+}
+
+
+
+void Accept(){
+    while (true){
+        int numsBoss = epoll_wait(epfdBoss, acceptEvents, EPOLLSIZE, -1); //waiting for new connections (blocking)
+        if (numsBoss < 0){
+            cout << "Boss Error!\n";
+        }
+
+        if (numsBoss > 0){ // incoming connections
+            for (int i = 0; i < numsBoss; i++){
+                if (acceptEvents[i].events == EPOLLIN){
+                    struct sockaddr_in client_addr;
+                    socklen_t client_addr_len = sizeof(client_addr);
+
+                    int new_fd = accept(listen_fd, (struct sockaddr *)&client_addr, &client_addr_len); // accept new connections
+                    if (new_fd < 0){
+                        cout << "Server Accept Failed!\n";
+                    }
+                    else{
+                        cout << "new connection was accepted.\n";
+
+                        // register the incomming fd to epfd
+                        struct epoll_event event;
+                        event.data.fd = new_fd;
+                        event.events = EPOLLIN;
+
+                        epoll_ctl(epfdDispatcher, EPOLL_CTL_ADD, new_fd, &event); // register workers' fd to epfdWorker (epoll is thread-safe)
+
+                    }
+                }  
+            }          
+        }
+        
+    }
+}
+
+void Dispatch(){
+    while (true){
+        numsWorks.store(epoll_wait(epfdDispatcher, recvEvents, EPOLLSIZE, -1)); // waiting for socket readable events (blocking)
+    
+        if (numsWorks.load() < 0){
+            cout << "Dispatcher Error!\n";
+        }
+
+
+        if (numsWorks.load() > 0){ 
+            taskReady.store(true);
+            exeCV.notify_all();
+            while (taskReady.load())
+            {
+                usleep(1000);
+            }
+            
+        }
+    }
+}
+
+void Worker(int workerId){
+    while (true)
+    {
+        unique_lock<mutex> exeLock(exeMTX);
+        while (!taskReady.load())
+        {
+            exeCV.wait(exeLock);
+        }
+
+        vector<int> fds;
+        vector<uint32_t> events;
+
+        for (int i = 0; i < numsWorks.load(); i++){
+            fds.push_back(recvEvents[i].data.fd);
+            events.push_back(recvEvents[i].events);
+        }
+        taskReady.store(false);
+        exeLock.unlock();
+
+        for (int i = 0; i < fds.size(); i++){
+
+            bool close_conn = false; // an indicator of the status of this fd
+            int fd = fds[i];
+            if (events[i] == EPOLLIN){ // incoming messages
                 int len = recv(fd, recvBuffer[workerId], sizeof(recvBuffer[workerId]), 0);
             
                 if (len <= 0){
@@ -178,7 +204,7 @@ void Recv(int workerId){
                 memset(recvBuffer[workerId], 0, sizeof(recvBuffer[workerId]));    
                 memset(sendBuffer[workerId], 0, sizeof(sendBuffer[workerId]));      
             }    
-            else if(recvEvents[workerId][i].events != EPOLLIN){ // other events, close this connection
+            else if(events[i] != EPOLLIN){ // other events, close this connection
                 close_conn = true;
 
             }
@@ -186,21 +212,12 @@ void Recv(int workerId){
                 struct epoll_event event;
                 event.data.fd = fd;
                 event.events = EPOLLIN;
-                epoll_ctl(epfdWorker, EPOLL_CTL_DEL, fd, &event); // use epoll_ctl to del a fd from epoll
+                epoll_ctl(epfdDispatcher, EPOLL_CTL_DEL, fd, &event); // use epoll_ctl to del a fd from epoll
                 close(fd);
                 cout << "A client has disconneted\n";
             }
         }
     }
-}
-
-void Executor(int workerId, int numsEvent){
-    while (true)
-    {
-        /* code */
-    }
-    
-
 }
 
 string cmdHandlerService(string cmd, int fd){

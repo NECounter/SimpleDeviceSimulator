@@ -42,7 +42,7 @@ using namespace mysqlpp;
 
 #define BUFFER_SIZE 1024 //size of recv and send buffer
 #define EPOLLSIZE 8196 //size of epoll lists
-#define WORKER_SIZE 10 //number of workers (1 boss, n workers)
+#define WORKER_SIZE 4 //number of workers (1 boss, n workers)
 
 
 struct QueryInfo{ //infomation of one query
@@ -61,18 +61,19 @@ struct QueryInfo{ //infomation of one query
     socklen_t server_addr_len;
     int listen_fd;                        // listener's fd
     int epfdBoss;                             // epoll fd of boss
-    int epfdWorkers[WORKER_SIZE];                             // epoll fds of workers           
+    int epfdDispatcher;                             // epoll fds of workers           
     struct epoll_event acceptEvents[EPOLLSIZE]; // placeholder of event list which epoll_wait retruns (for boss)
-    struct epoll_event recvEvents[WORKER_SIZE][EPOLLSIZE]; // placeholder of event list which epoll_wait retruns (for workers)
-    int workerIndex = 0;
+    struct epoll_event recvEvents[EPOLLSIZE]; // placeholder of event list which epoll_wait retruns (for workers)
+    atomic<int> numsWorks = 0;
     char recvBuffer[WORKER_SIZE][BUFFER_SIZE];
     char sendBuffer[WORKER_SIZE][BUFFER_SIZE];
     //save lock
     mutex saveMTX;
 
-    //executor lock
+    //worker lock
     mutex exeMTX;
     condition_variable exeCV;
+    atomic<bool> taskReady = false;
 
     MemFileHandler* mem;
     DeviceDataController* dataController;
@@ -87,11 +88,21 @@ struct QueryInfo{ //infomation of one query
     void Run();
     void ServerDispose(); //dispose
 
-    void EpollThread(int flag); // An epoll thread
+    void EpollThread(); // An epoll thread
 
-    void Accept(int workerId); // (jobs of boss)
-    void Recv(int epfdWorker); // (jobs oof workers)
-    void Executor(int workerId, int numsEvent);
+    void Accept(); // (jobs of boss)
+    void Dispatch(); // (jobs oof workers)
+    void Worker(int workerId);
     
     string cmdHandlerService(string cmd, int fd); // server service
     bool sqlWriteService(QueryInfo queryInfo);
+    
+    
+
+   
+    
+    
+
+
+
+
