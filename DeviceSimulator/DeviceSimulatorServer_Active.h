@@ -21,7 +21,7 @@
 #include <condition_variable> // std::condition_variable
 #include <atomic>
 
-#include <mysql++.h>
+//#include <mysql++.h>
 
 #include <cstdlib>
 #include <cstdio>
@@ -38,7 +38,7 @@
 
 
 using namespace std;
-using namespace mysqlpp;
+//using namespace mysqlpp;
 
 #define BUFFER_SIZE 1024 //size of recv and send buffer
 #define EPOLLSIZE 8196 //size of epoll lists
@@ -79,7 +79,7 @@ struct QueryInfo{ //infomation of one query
     DeviceDataController* dataController;
     QueryInfo queryInfo;
 
-    Connection* conn;
+    //Connection* conn;
     bool DBConnected = false;
     
     void ServerInit(); // init 

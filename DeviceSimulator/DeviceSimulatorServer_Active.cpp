@@ -30,7 +30,7 @@ void ServerInit(){
     queryInfo = { "-1" ,"-1" , "-1" , "-1" , "-1" , "-1" , "-1" , "-1" };
 
     // create connection to DB 
-    SetCharsetNameOption charsetOpt("utf8");
+    /* SetCharsetNameOption charsetOpt("utf8");
     try{
         conn = new Connection(false);
         conn->set_option(&charsetOpt);
@@ -43,16 +43,16 @@ void ServerInit(){
     catch(const exception& e){
 
         cerr << e.what() << "\n";
-    }
+    } */
 }
 
 void ServerDispose(){
     delete[] mem;
     delete[] dataController;
-    if (conn->connected()){
+/*     if (conn->connected()){
         conn->disconnect();
         delete[] conn;
-    }
+    } */
 }
 
 
@@ -395,7 +395,7 @@ string cmdHandlerService(string cmd, int fd){
 }
 
 bool sqlWriteService(QueryInfo queryInfo){
-    if (DBConnected){
+/*     if (DBConnected){
         string sql = "INSERT INTO `device_log`.`operation_log` (`operation`, `data_type`, `offset_byte`, `offset_bit`, `value_write`, `value_read`, `client_id`, `operation_dt`) \
 VALUES('" + queryInfo.operation + "', '" + queryInfo.dataType + "', " + queryInfo.offsetByte + ", " + queryInfo.offsetBit + ", " + queryInfo.valueWrite + ", " + queryInfo.valueRead + ", " + queryInfo.clientId + ", '" + queryInfo.operationDT + "')";
         Query query = conn->query(sql);
@@ -405,6 +405,6 @@ VALUES('" + queryInfo.operation + "', '" + queryInfo.dataType + "', " + queryInf
     else{
         //cout << "DB connection failed: " << conn->error() << "\n";
         return false;
-    }
+    } */
 }
  

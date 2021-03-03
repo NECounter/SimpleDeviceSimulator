@@ -1,7 +1,7 @@
 CC:=g++-9
-CXXFLAGS := -I/usr/include/mysql -I/usr/local/include/mysql++
+CXXFLAGS := #-I/usr/include/mysql -I/usr/local/include/mysql++
 LDFLAGS := -L/usr/local/lib
-LDLIBS := -lmysqlpp -lmysqlclient -pthread -std=c++17
+LDLIBS := -pthread -std=c++17 #-lmysqlpp -lmysqlclient
 
 ServerSource:=DataConvertorUtils.cpp DeviceDataController.cpp DeviceSimulatorServer.cpp FileUtils.cpp MemFileHandler.cpp
 
