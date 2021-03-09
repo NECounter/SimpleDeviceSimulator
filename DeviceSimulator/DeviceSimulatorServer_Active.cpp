@@ -1,15 +1,46 @@
 #include "DeviceSimulatorServer_Active.h"
 
-int main() {
-	ServerInit();
-    Bind();
-    Listen();
-    Run();
-    ServerDispose();
-    return 0;
+int main()
+{
+    pid_t pc = fork();
+    FileUtils::logWrite("test\n", logPath);
+    if (pc < 0)
+    {
+        cout << "error fork\n";
+        exit(1);
+    }
+    else if (pc > 0)
+    {
+        exit(0);
+    }
+    cout << "running\n";
+
+    setsid();
+    chdir("/");
+    umask(0);
+    for (int i = 0; i < MAXFILE; i++)
+    {
+        close(i);
+    }
+    signal(SIGTERM, sigterm_handler);
+    while (_running)
+    {
+        ServerInit();
+        Bind();
+        Listen();
+        Run();
+        ServerDispose();
+        return 0;
+    }
 }
 
-void ServerInit(){
+void sigterm_handler(int arg)
+{
+    _running = 0;
+}
+
+void ServerInit()
+{
     bzero(&server_addr, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = htons(INADDR_ANY);
@@ -17,8 +48,9 @@ void ServerInit(){
 
     // create socket to listen
     listen_fd = socket(PF_INET, SOCK_STREAM, 0);
-    if (listen_fd < 0){
-        cout << "Create Socket Failed!!\n";
+    if (listen_fd < 0)
+    {
+        FileUtils::logWrite("Create Socket Failed!!\n", logPath);
         exit;
     }
     int opt = 1;
@@ -27,9 +59,9 @@ void ServerInit(){
     // load something
     mem = new MemFileHandler("mem.dat", 2 * 1024 * 1024);
     dataController = new DeviceDataController(mem);
-    queryInfo = { "-1" ,"-1" , "-1" , "-1" , "-1" , "-1" , "-1" , "-1" };
+    queryInfo = {"-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1"};
 
-    // create connection to DB 
+    // create connection to DB
     /* SetCharsetNameOption charsetOpt("utf8");
     try{
         conn = new Connection(false);
@@ -46,36 +78,40 @@ void ServerInit(){
     } */
 }
 
-void ServerDispose(){
+void ServerDispose()
+{
     delete[] mem;
     delete[] dataController;
-/*     if (conn->connected()){
+    /*     if (conn->connected()){
         conn->disconnect();
         delete[] conn;
     } */
 }
 
-
-void Bind(){
-    if (-1 == (bind(listen_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)))){
-        cout << "Server Bind Failed!\n";
+void Bind()
+{
+    if (-1 == (bind(listen_fd, (struct sockaddr *)&server_addr, sizeof(server_addr))))
+    {
+        FileUtils::logWrite("Server Bind Failed!\n", logPath);
         exit;
     }
-    cout << "Bind Successfully.\n";
+    FileUtils::logWrite("Bind Successfully.\n", logPath);
 }
 
-void Listen(int queue_len){
-    if (-1 == listen(listen_fd, queue_len)){
-        cout << "Server Listen Failed!\n";
+void Listen(int queue_len)
+{
+    if (-1 == listen(listen_fd, queue_len))
+    {
+        FileUtils::logWrite("Server Listen Failed!\n", logPath);
         exit;
     }
-    cout << "Listen Successfully.\n";
+    FileUtils::logWrite("Server Listen Successfully!\n", logPath);
 }
 
-void Run(){
+void Run()
+{
     epfdBoss = epoll_create(EPOLLSIZE); // create epoll handler and return its fd
     epfdDispatcher = epoll_create(EPOLLSIZE);
-
 
     // register the listen_fd to epfd
     struct epoll_event event;
@@ -84,80 +120,85 @@ void Run(){
     epoll_ctl(epfdBoss, EPOLL_CTL_ADD, listen_fd, &event); // register listeners fd to epfdBoss
 
     thread workerThreads[WORKER_SIZE];
-    for (int i = 0; i < WORKER_SIZE; i++){
-        workerThreads[i] = thread(Worker, i); 
+    for (int i = 0; i < WORKER_SIZE; i++)
+    {
+        workerThreads[i] = thread(Worker, i);
     }
-    
-    
+
     thread acceptThread = thread(Accept);
     thread disPatchThread = thread(Dispatch);
 
     acceptThread.join();
     disPatchThread.join();
-    for (auto& th : workerThreads) th.join(); // join to the mian thread
-
- 
+    for (auto &th : workerThreads)
+        th.join(); // join to the mian thread
 }
 
-
-
-void Accept(){
-    while (true){
+void Accept()
+{
+    while (true)
+    {
         int numsBoss = epoll_wait(epfdBoss, acceptEvents, EPOLLSIZE, -1); //waiting for new connections (blocking)
-        if (numsBoss < 0){
-            cout << "Boss Error!\n";
+        if (numsBoss < 0)
+        {
+            FileUtils::logWrite("Boss Error!\n", logPath);
         }
 
-        if (numsBoss > 0){ // incoming connections
-            for (int i = 0; i < numsBoss; i++){
-                if (acceptEvents[i].events == EPOLLIN){
+        if (numsBoss > 0)
+        { // incoming connections
+            for (int i = 0; i < numsBoss; i++)
+            {
+                if (acceptEvents[i].events == EPOLLIN)
+                {
                     struct sockaddr_in client_addr;
                     socklen_t client_addr_len = sizeof(client_addr);
 
                     int new_fd = accept(listen_fd, (struct sockaddr *)&client_addr, &client_addr_len); // accept new connections
-                    if (new_fd < 0){
-                        cout << "Server Accept Failed!\n";
+                    if (new_fd < 0)
+                    {
+                        FileUtils::logWrite("Server Accept Failed!\n", logPath);
                     }
-                    else{
-                        cout << "new connection was accepted.\n";
-
+                    else
+                    {
+                        FileUtils::logWrite("new connection was accepted.\n", logPath);
                         // register the incomming fd to epfd
                         struct epoll_event event;
                         event.data.fd = new_fd;
                         event.events = EPOLLIN;
 
                         epoll_ctl(epfdDispatcher, EPOLL_CTL_ADD, new_fd, &event); // register workers' fd to epfdWorker (epoll is thread-safe)
-
                     }
-                }  
-            }          
+                }
+            }
         }
-        
     }
 }
 
-void Dispatch(){
-    while (true){
+void Dispatch()
+{
+    while (true)
+    {
         numsWorks.store(epoll_wait(epfdDispatcher, recvEvents, EPOLLSIZE, -1)); // waiting for socket readable events (blocking)
-    
-        if (numsWorks.load() < 0){
-            cout << "Dispatcher Error!\n";
+
+        if (numsWorks.load() < 0)
+        {
+            FileUtils::logWrite("Dispatcher Error!\n", logPath);
         }
 
-
-        if (numsWorks.load() > 0){ 
+        if (numsWorks.load() > 0)
+        {
             taskReady.store(true);
             exeCV.notify_all();
             while (taskReady.load())
             {
                 usleep(1000);
             }
-            
         }
     }
 }
 
-void Worker(int workerId){
+void Worker(int workerId)
+{
     while (true)
     {
         unique_lock<mutex> exeLock(exeMTX);
@@ -169,136 +210,163 @@ void Worker(int workerId){
         vector<int> fds;
         vector<uint32_t> events;
 
-        for (int i = 0; i < numsWorks.load(); i++){
+        for (int i = 0; i < numsWorks.load(); i++)
+        {
             fds.push_back(recvEvents[i].data.fd);
             events.push_back(recvEvents[i].events);
         }
         taskReady.store(false);
         exeLock.unlock();
 
-        for (int i = 0; i < fds.size(); i++){
+        for (int i = 0; i < fds.size(); i++)
+        {
 
             bool close_conn = false; // an indicator of the status of this fd
             int fd = fds[i];
-            if (events[i] == EPOLLIN){ // incoming messages
+            if (events[i] == EPOLLIN)
+            { // incoming messages
                 int len = recv(fd, recvBuffer[workerId], sizeof(recvBuffer[workerId]), 0);
-            
-                if (len <= 0){
-                    cout << "recv() error!\n";
-                    close_conn = true;  
+
+                if (len <= 0)
+                {
+                    FileUtils::logWrite("recv error!\n", logPath);
+                    close_conn = true;
                 }
-                else{
+                else
+                {
                     string msg = cmdHandlerService(recvBuffer[workerId], fd); // the main service of this server
-                
+
                     msg += "\n";
                     memcpy(sendBuffer[workerId], msg.c_str(), strlen(msg.c_str()));
-            
+
                     int ret1 = send(fd, sendBuffer[workerId], strlen(msg.c_str()), 0); // return results to clients
-                    if (ret1 <= 0){
-                        cout << "send() error!\n";
+                    if (ret1 <= 0)
+                    {
+                        FileUtils::logWrite("send error!\n", logPath);
                         close_conn = true;
-                    }else{
+                    }
+                    else
+                    {
                         //sqlWriteService(queryInfo);
                     }
-                } 
-                memset(recvBuffer[workerId], 0, sizeof(recvBuffer[workerId]));    
-                memset(sendBuffer[workerId], 0, sizeof(sendBuffer[workerId]));      
-            }    
-            else if(events[i] != EPOLLIN){ // other events, close this connection
-                close_conn = true;
-
+                }
+                memset(recvBuffer[workerId], 0, sizeof(recvBuffer[workerId]));
+                memset(sendBuffer[workerId], 0, sizeof(sendBuffer[workerId]));
             }
-            if (close_conn){ // bad cnnection, close it
+            else if (events[i] != EPOLLIN)
+            { // other events, close this connection
+                close_conn = true;
+            }
+            if (close_conn)
+            { // bad cnnection, close it
                 struct epoll_event event;
                 event.data.fd = fd;
                 event.events = EPOLLIN;
                 epoll_ctl(epfdDispatcher, EPOLL_CTL_DEL, fd, &event); // use epoll_ctl to del a fd from epoll
                 close(fd);
-                cout << "A client has disconneted\n";
+                FileUtils::logWrite("A client has disconneted\n", logPath);
             }
         }
     }
 }
 
-string cmdHandlerService(string cmd, int fd){
-	string reg = ",";
-	int offset = 0;
-	int bitOffset = 0;
-	int dData = 0;
-	float fData = 0.0f;
-	bool bData = false;
+string cmdHandlerService(string cmd, int fd)
+{
+    string reg = ",";
+    int offset = 0;
+    int bitOffset = 0;
+    int dData = 0;
+    float fData = 0.0f;
+    bool bData = false;
 
-	vector<string> cmds;
+    vector<string> cmds;
 
     string msg = "...";
 
-    queryInfo = { "-1" ,"-1" , "-1" , "-1" , "-1" , "-1" , "-1" , "-1" };
+    queryInfo = {"-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1"};
     queryInfo.clientId = to_string(fd);
-    if(cmd == ""){
+    if (cmd == "")
+    {
         msg = "Invalid";
         return msg;
     }
-    
-    char* buf;
-    char* token = strtok_r((char*)cmd.c_str(), reg.c_str(), &buf);
-    while (token != NULL) {
+
+    char *buf;
+    char *token = strtok_r((char *)cmd.c_str(), reg.c_str(), &buf);
+    while (token != NULL)
+    {
         cmds.push_back(token);
         token = strtok_r(NULL, reg.c_str(), &buf);
     }
 
     int cmdLen = cmds.size();
-    if (cmds[0]=="getb"){
-        if (cmdLen == 3) {
-            try{
+    if (cmds[0] == "getb")
+    {
+        if (cmdLen == 3)
+        {
+            try
+            {
                 offset = stoi(cmds[1]);
                 bitOffset = stoi(cmds[2]);
-                bool bmsg = dataController->getBit(offset,bitOffset);
+                bool bmsg = dataController->getBit(offset, bitOffset);
                 queryInfo.dataType = "Bit";
                 queryInfo.offsetBit = cmds[2];
                 queryInfo.offsetByte = cmds[1];
                 queryInfo.operation = "Get";
                 queryInfo.valueRead = to_string(bmsg);
-                
-                if (bmsg){
+
+                if (bmsg)
+                {
                     msg = "True";
                 }
-                else{
+                else
+                {
                     msg = "False";
                 }
             }
-            catch (...){
+            catch (...)
+            {
                 msg = "Invalid";
             }
         }
-        else {
+        else
+        {
             msg = "Invalid";
         }
-    } 
-    else if (cmds[0] == "setb") {
-        if (cmdLen == 4) {
-            try {
+    }
+    else if (cmds[0] == "setb")
+    {
+        if (cmdLen == 4)
+        {
+            try
+            {
                 offset = stoi(cmds[1]);
                 bitOffset = stoi(cmds[2]);
                 bData = stoi(cmds[3]);
-                dataController->setBit(offset, bitOffset,bData);
+                dataController->setBit(offset, bitOffset, bData);
                 msg = "Set";
                 queryInfo.dataType = "Bit";
                 queryInfo.offsetBit = cmds[2];
                 queryInfo.offsetByte = cmds[1];
                 queryInfo.operation = "Set";
-                queryInfo.valueWrite = to_string(bData);	
+                queryInfo.valueWrite = to_string(bData);
             }
-            catch (...) {
+            catch (...)
+            {
                 msg = "Invalid";
             }
         }
-        else {
+        else
+        {
             msg = "Invalid";
         }
     }
-    else if (cmds[0] == "getd") {
-        if (cmdLen == 2) {
-            try {
+    else if (cmds[0] == "getd")
+    {
+        if (cmdLen == 2)
+        {
+            try
+            {
                 offset = stoi(cmds[1]);
                 msg = to_string(dataController->getDWord(offset));
                 queryInfo.dataType = "DWord";
@@ -306,37 +374,47 @@ string cmdHandlerService(string cmd, int fd){
                 queryInfo.operation = "Get";
                 queryInfo.valueRead = msg;
             }
-            catch (...) {
+            catch (...)
+            {
                 msg = "Invalid";
             }
         }
-        else {
+        else
+        {
             msg = "Invalid";
         }
     }
-    else if (cmds[0] == "setd") {
-        if (cmdLen == 3) {
-            try {
+    else if (cmds[0] == "setd")
+    {
+        if (cmdLen == 3)
+        {
+            try
+            {
                 offset = stoi(cmds[1]);
                 dData = stoi(cmds[2]);
-                dataController->setDWord(offset,dData);
+                dataController->setDWord(offset, dData);
                 msg = "Set";
                 queryInfo.dataType = "DWord";
                 queryInfo.offsetByte = cmds[1];
                 queryInfo.operation = "Set";
                 queryInfo.valueWrite = to_string(dData);
             }
-            catch (...) {
+            catch (...)
+            {
                 msg = "Invalid";
             }
         }
-        else {
+        else
+        {
             msg = "Invalid";
         }
     }
-    else if (cmds[0] == "getf") {
-        if (cmdLen == 2) {
-            try {
+    else if (cmds[0] == "getf")
+    {
+        if (cmdLen == 2)
+        {
+            try
+            {
                 offset = stoi(cmds[1]);
                 msg = to_string(dataController->getFloat(offset));
                 queryInfo.dataType = "Float";
@@ -344,17 +422,22 @@ string cmdHandlerService(string cmd, int fd){
                 queryInfo.operation = "Get";
                 queryInfo.valueRead = msg;
             }
-            catch (...) {
+            catch (...)
+            {
                 msg = "Invalid";
             }
         }
-        else {
+        else
+        {
             msg = "Invalid";
         }
     }
-    else if (cmds[0] == "setf") {
-        if (cmdLen == 3) {
-            try {
+    else if (cmds[0] == "setf")
+    {
+        if (cmdLen == 3)
+        {
+            try
+            {
                 offset = stoi(cmds[1]);
                 fData = stof(cmds[2]);
                 dataController->setFloat(offset, fData);
@@ -364,16 +447,20 @@ string cmdHandlerService(string cmd, int fd){
                 queryInfo.operation = "Set";
                 queryInfo.valueWrite = to_string(fData);
             }
-            catch (...) {
+            catch (...)
+            {
                 msg = "Invalid";
             }
         }
-        else {
+        else
+        {
             msg = "Invalid";
         }
     }
-    else if (cmds[0] == "save") {
-        if (cmdLen == 1) {
+    else if (cmds[0] == "save")
+    {
+        if (cmdLen == 1)
+        {
             unique_lock<mutex> saveLock(saveMTX); // should write codes which are thread-safe
             dataController->save();
             msg = "Saved";
@@ -381,7 +468,8 @@ string cmdHandlerService(string cmd, int fd){
             saveLock.unlock();
         }
     }
-    else {
+    else
+    {
         msg = "Invalid";
     }
 
@@ -394,8 +482,9 @@ string cmdHandlerService(string cmd, int fd){
     return msg;
 }
 
-bool sqlWriteService(QueryInfo queryInfo){
-/*     if (DBConnected){
+bool sqlWriteService(QueryInfo queryInfo)
+{
+    /*     if (DBConnected){
         string sql = "INSERT INTO `device_log`.`operation_log` (`operation`, `data_type`, `offset_byte`, `offset_bit`, `value_write`, `value_read`, `client_id`, `operation_dt`) \
 VALUES('" + queryInfo.operation + "', '" + queryInfo.dataType + "', " + queryInfo.offsetByte + ", " + queryInfo.offsetBit + ", " + queryInfo.valueWrite + ", " + queryInfo.valueRead + ", " + queryInfo.clientId + ", '" + queryInfo.operationDT + "')";
         Query query = conn->query(sql);
@@ -407,4 +496,3 @@ VALUES('" + queryInfo.operation + "', '" + queryInfo.dataType + "', " + queryInf
         return false;
     } */
 }
- 

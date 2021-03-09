@@ -1,4 +1,4 @@
-CC:=g++-9
+CC:=g++
 CXXFLAGS := #-I/usr/include/mysql -I/usr/local/include/mysql++
 LDFLAGS := -L/usr/local/lib
 LDLIBS := -pthread -std=c++17 #-lmysqlpp -lmysqlclient
